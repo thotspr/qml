@@ -1,0 +1,79 @@
+[package]
+name = "qml"
+version = "0.1.0"
+edition = "2021"
+authors = ["QML Contributors"]
+description = "A Rust implementation of QML background job processing"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/qml-io/qml"
+keywords = ["background", "jobs", "async", "queue", "worker"]
+categories = ["asynchronous", "web-programming"]
+
+[dependencies]
+tokio = { version = "1.46", features = ["full"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+uuid = { version = "1.17", features = ["v4"] }
+chrono = { version = "0.4", features = ["serde"] }
+thiserror = "2.0"
+tracing = "0.1"
+async-trait = "0.1"
+redis = { version = "0.32.4", features = [
+    "aio",
+    "tokio-comp",
+    "connection-manager",
+] }
+tokio-util = "0.7"
+fastrand = "2.3"
+
+# Dashboard and web server dependencies
+axum = { version = "0.7", features = ["ws"] }
+tower = "0.5"
+tower-http = { version = "0.5", features = ["cors", "fs"] }
+hyper = { version = "1.0", features = ["full"] }
+tokio-tungstenite = "0.21"                                  # For WebSocket support
+futures-util = "0.3"
+
+# PostgreSQL storage support
+sqlx = { version = "0.8", features = [
+    "postgres",
+    "runtime-tokio-rustls",
+    "migrate",
+    "chrono",
+    "uuid",
+    "json",
+], optional = true }
+# Future cron job support
+# cron = { version = "0.12", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tracing-subscriber = "0.3"
+futures = "0.3"            # For join_all in concurrency tests
+
+[features]
+default = []
+# Storage backend features
+postgres = ["sqlx"]
+# Future features for later phases
+# cron-jobs = ["cron"]
+
+[[example]]
+name = "basic_job"
+path = "examples/basic_job.rs"
+
+[[example]]
+name = "storage_demo"
+path = "examples/storage_demo.rs"
+
+[[example]]
+name = "dashboard_demo"
+path = "examples/dashboard_demo.rs"
+
+[[example]]
+name = "processing_demo"
+path = "examples/processing_demo.rs"
+
+[[example]]
+name = "postgres_simple"
+path = "examples/postgres_simple.rs"

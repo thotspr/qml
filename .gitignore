@@ -1,0 +1,118 @@
+# Rust build artifacts
+/target/
+**/*.rs.bk
+**/*.rlib
+**/*.dSYM
+
+# Cargo package manager
+Cargo.lock
+Cargo.toml.orig
+
+# Binaries and executables
+*.exe
+*.dll
+*.so
+*.dylib
+*.bin
+*.out
+*.a
+*.o
+*.obj
+
+# Debug and profiling
+*.pdb
+*.profraw
+*.gcda
+*.gcno
+*.gcov
+
+# IDEs and editors
+/.idea/
+/.vscode/
+*.swp
+*.swo
+*~
+*.bak
+*.tmp
+*.DS_Store
+
+# Logs and temp files
+*.log
+*.tmp
+*.pid
+*.old
+
+# Environment and secrets
+.env
+.env.*
+.envrc
+*.secret
+*.key
+*.pem
+
+# Docker
+Dockerfile*
+/docker-compose*.yml
+/docker-compose*.yaml
+/docker-compose.override.yml
+/docker-compose.override.yaml
+/docker-compose.prod.yml
+/docker-compose.dev.yml
+/docker-compose.test.yml
+/docker-compose.local.yml
+/docker-compose.ci.yml
+/docker-compose.staging.yml
+/docker-compose.*.yml
+/docker-compose.*.yaml
+/docker/
+.docker/
+.dockerignore
+
+# Database dumps and data
+*.sql
+db/*.sql
+db/*.dump
+*.db
+*.sqlite
+*.sqlite3
+*.pgdata
+*.rdb
+*.redis
+*.pid
+
+# Postgres/Redis runtime data
+postgres_data/
+redis_data/
+
+# Migrations (generated)
+migrations/*.log
+migrations/*.tmp
+
+# Node/npm (if dashboard uses JS)
+/node_modules/
+package-lock.json
+yarn.lock
+
+# Coverage
+/coverage/
+*.lcov
+
+# Misc
+*.orig
+*.rej
+*.patch
+
+# Ignore macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Ignore Windows system files
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Ignore test output
+/tests/output/
+/tests/tmp/
+/tests/logs/ 
