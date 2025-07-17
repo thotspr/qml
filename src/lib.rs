@@ -372,8 +372,10 @@ pub use processing::{
     BackgroundJobServer, JobActivator, JobProcessor, JobScheduler, RetryPolicy, RetryStrategy,
     ServerConfig, Worker, WorkerConfig, WorkerContext, WorkerRegistry, WorkerResult,
 };
-pub use storage::{
-    MemoryStorage, RedisStorage, Storage, StorageConfig, StorageError, StorageInstance, Settings,
-};
+pub use storage::{MemoryStorage, Storage, StorageConfig, StorageError, StorageInstance};
+
+#[cfg(feature = "redis")]
+pub use storage::{RedisConfig, RedisStorage};
+
 #[cfg(feature = "postgres")]
 pub use storage::{PostgresConfig, PostgresStorage};

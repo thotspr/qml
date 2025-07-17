@@ -1,7 +1,10 @@
 use qml::{
-    storage::{MemoryConfig, RedisConfig, StorageConfig, StorageInstance},
+    storage::{MemoryConfig, StorageConfig, StorageInstance},
     Job, JobState, Storage,
 };
+
+#[cfg(feature = "redis")]
+use qml::storage::RedisConfig;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -41,57 +44,72 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📦 Demo 4: Redis Storage");
     println!("------------------------");
 
-    let redis_url =
-        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
-    let redis_password = std::env::var("REDIS_PASSWORD").ok();
+    #[cfg(feature = "redis")]
+    {
+        // Set environment variable for Redis URL
+        std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
+        
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+        let redis_password = std::env::var("REDIS_PASSWORD").ok();
 
-    let mut redis_config = RedisConfig::new()
-        .with_url(&redis_url)
-        .with_key_prefix("qml_demo")
-        .with_database(1); // Use database 1 for demo
+        let mut redis_config = RedisConfig::new()
+            .with_url(&redis_url)
+            .with_key_prefix("qml_demo")
+            .with_database(1); // Use database 1 for demo
 
-    if let Some(password) = redis_password {
-        redis_config = redis_config.with_password(password);
+        if let Some(password) = redis_password {
+            redis_config = redis_config.with_password(password);
+        }
+
+        match StorageInstance::redis(redis_config.clone()).await {
+            Ok(redis_storage) => {
+                demo_storage_operations(&redis_storage, "Redis Storage").await?;
+                println!();
+
+                // Demo 5: Redis Storage via Configuration Factory
+                println!("📦 Demo 5: Redis Storage via Configuration Factory");
+                println!("--------------------------------------------------");
+
+                let config = StorageConfig::Redis(redis_config);
+                let factory_redis_storage = StorageInstance::from_config(config).await?;
+                demo_storage_operations(&factory_redis_storage, "Redis Storage (Factory)").await?;
+            }
+            Err(e) => {
+                println!("⚠️  Redis not available, skipping Redis demos: {}", e);
+                println!("   To run Redis demos, make sure Redis is running on localhost:6379");
+            }
+        }
+
+        // Demo 6: Advanced Redis Configuration
+        println!("📦 Demo 6: Advanced Redis Configuration");
+        println!("---------------------------------------");
+
+        let advanced_redis_config = RedisConfig::new()
+            .with_url("redis://127.0.0.1:6379")
+            .with_key_prefix("qml_advanced")
+            .with_database(2)
+            .with_pool_size(20)
+            .with_completed_job_ttl(std::time::Duration::from_secs(3600)) // 1 hour
+            .with_failed_job_ttl(std::time::Duration::from_secs(7 * 24 * 3600)); // 7 days
+
+        match StorageInstance::redis(advanced_redis_config).await {
+            Ok(redis_storage) => {
+                demo_storage_operations(&redis_storage, "Redis Storage (Advanced)").await?;
+            }
+            Err(_) => {
+                println!("⚠️  Redis not available for advanced demo");
+            }
+        }
+        
+        // Clean up environment variable
+        std::env::remove_var("REDIS_URL");
     }
-
-    match StorageInstance::redis(redis_config.clone()).await {
-        Ok(redis_storage) => {
-            demo_storage_operations(&redis_storage, "Redis Storage").await?;
-            println!();
-
-            // Demo 5: Redis Storage via Configuration Factory
-            println!("📦 Demo 5: Redis Storage via Configuration Factory");
-            println!("--------------------------------------------------");
-
-            let config = StorageConfig::Redis(redis_config);
-            let factory_redis_storage = StorageInstance::from_config(config).await?;
-            demo_storage_operations(&factory_redis_storage, "Redis Storage (Factory)").await?;
-        }
-        Err(e) => {
-            println!("⚠️  Redis not available, skipping Redis demos: {}", e);
-            println!("   To run Redis demos, make sure Redis is running on localhost:6379");
-        }
-    }
-
-    // Demo 6: Advanced Redis Configuration
-    println!("📦 Demo 6: Advanced Redis Configuration");
-    println!("---------------------------------------");
-
-    let advanced_redis_config = RedisConfig::new()
-        .with_url("redis://127.0.0.1:6379")
-        .with_key_prefix("qml_advanced")
-        .with_database(2)
-        .with_pool_size(20)
-        .with_completed_job_ttl(std::time::Duration::from_secs(3600)) // 1 hour
-        .with_failed_job_ttl(std::time::Duration::from_secs(7 * 24 * 3600)); // 7 days
-
-    match StorageInstance::redis(advanced_redis_config).await {
-        Ok(redis_storage) => {
-            demo_storage_operations(&redis_storage, "Redis Storage (Advanced)").await?;
-        }
-        Err(_) => {
-            println!("⚠️  Redis not available for advanced demo");
-        }
+    
+    #[cfg(not(feature = "redis"))]
+    {
+        println!("⚠️  Redis feature not enabled, skipping Redis demos");
+        println!("   To enable Redis demos, run with: cargo run --example storage_demo --features redis");
     }
 
     println!("\n✅ All storage demos completed successfully!");
@@ -197,22 +215,38 @@ async fn demo_config_serialization() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create configurations
     let memory_config = StorageConfig::Memory(MemoryConfig::new().with_max_jobs(1000));
-    let redis_config = StorageConfig::Redis(
-        RedisConfig::new()
-            .with_url("redis://localhost:6379")
-            .with_key_prefix("qml_prod"),
-    );
+    
+    #[cfg(feature = "redis")]
+    let redis_config = {
+        // Set environment variable for Redis configuration demo
+        std::env::set_var("REDIS_URL", "redis://localhost:6379");
+        StorageConfig::Redis(
+            RedisConfig::new()
+                .with_url("redis://localhost:6379")
+                .with_key_prefix("qml_prod"),
+        )
+    };
 
     // Serialize to JSON
     let memory_json = serde_json::to_string_pretty(&memory_config)?;
+    
+    #[cfg(feature = "redis")]
     let redis_json = serde_json::to_string_pretty(&redis_config)?;
 
     println!("Memory Config JSON:\n{}", memory_json);
+    
+    #[cfg(feature = "redis")]
     println!("\nRedis Config JSON:\n{}", redis_json);
 
     // Deserialize back
     let _: StorageConfig = serde_json::from_str(&memory_json)?;
-    let _: StorageConfig = serde_json::from_str(&redis_json)?;
+    
+    #[cfg(feature = "redis")]
+    {
+        let _: StorageConfig = serde_json::from_str(&redis_json)?;
+        // Clean up environment variable
+        std::env::remove_var("REDIS_URL");
+    }
 
     println!("✅ Configuration serialization test passed");
     Ok(())

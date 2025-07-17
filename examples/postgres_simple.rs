@@ -7,7 +7,10 @@
 //! - Retrieving jobs and statistics
 
 #[cfg(feature = "postgres")]
-use qml::{Job, JobState, PostgresConfig, PostgresStorage, Storage, Settings};
+use qml::{Job, JobState, Storage};
+
+#[cfg(feature = "postgres")]
+use qml::storage::{PostgresConfig, PostgresStorage, settings::Settings};
 
 #[cfg(feature = "postgres")]
 #[tokio::main]

@@ -14,6 +14,7 @@ use tokio::time::sleep;
 #[cfg(feature = "postgres")]
 use crate::storage::{PostgresConfig, PostgresStorage};
 
+#[cfg(feature = "redis")]
 use crate::storage::{RedisConfig, RedisStorage};
 
 /// Test that multiple workers cannot fetch the same job (race condition prevention)
@@ -271,6 +272,7 @@ async fn test_memory_atomic_batch_fetching() {
 
 /// Test Redis locking mechanisms (if Redis is available)
 #[tokio::test]
+#[cfg(feature = "redis")]
 async fn test_redis_race_condition_prevention() {
     let Some(storage) = create_redis_storage().await else {
         println!("Skipping Redis test - Redis not available");
@@ -321,6 +323,7 @@ async fn test_redis_race_condition_prevention() {
 
 /// Test Redis lock acquisition and release
 #[tokio::test]
+#[cfg(feature = "redis")]
 async fn test_redis_lock_management() {
     let Some(storage) = create_redis_storage().await else {
         println!("Skipping Redis lock test - Redis not available");
@@ -468,6 +471,7 @@ async fn test_high_concurrency_stress() {
     run_stress_test(memory_storage, "memory").await;
 
     // Test Redis Storage if available
+    #[cfg(feature = "redis")]
     if let Some(redis_storage) = create_redis_storage().await {
         println!("Testing Redis storage under high concurrency...");
         run_stress_test(Arc::new(redis_storage), "redis").await;
@@ -556,9 +560,15 @@ fn create_test_job(method: &str) -> Job {
     )
 }
 
+#[cfg(feature = "redis")]
 async fn create_redis_storage() -> Option<RedisStorage> {
+    // Set environment variable for the test
+    std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
     let config = RedisConfig::default();
-    RedisStorage::with_config(config).await.ok()
+    let result = RedisStorage::with_config(config).await.ok();
+    // Clean up environment variable
+    std::env::remove_var("REDIS_URL");
+    result
 }
 
 #[cfg(feature = "postgres")]
