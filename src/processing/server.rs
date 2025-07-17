@@ -350,7 +350,7 @@ impl Clone for BackgroundJobServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::processing::{RetryStrategy, Worker, WorkerContext, WorkerResult};
+    use crate::processing::{Worker, WorkerContext, WorkerResult};
     use crate::storage::MemoryStorage;
     use async_trait::async_trait;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -368,6 +368,7 @@ mod tests {
             }
         }
 
+        #[allow(dead_code)]
         fn call_count(&self) -> usize {
             self.call_count.load(Ordering::Relaxed)
         }

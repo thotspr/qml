@@ -185,7 +185,6 @@ async fn test_config_serialization_roundtrip() {
             assert_eq!(orig.max_jobs, deser.max_jobs);
             assert_eq!(orig.auto_cleanup, deser.auto_cleanup);
         }
-        _ => panic!("Config types don't match"),
     }
 
     // Test Redis config
