@@ -1,24 +1,28 @@
 //! Simple PostgreSQL Storage Example
 //!
 //! This example demonstrates basic PostgreSQL storage operations:
-//! - Connecting to PostgreSQL
+//! - Connecting to PostgreSQL using environment variables
 //! - Running migrations
 //! - Creating and storing jobs
 //! - Retrieving jobs and statistics
 
 #[cfg(feature = "postgres")]
-use qml::{Job, JobState, PostgresConfig, PostgresStorage, Storage};
+use qml::{Job, JobState, PostgresConfig, PostgresStorage, Storage, Settings};
 
 #[cfg(feature = "postgres")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Starting Simple PostgreSQL Storage Demo");
 
-    // Configure PostgreSQL connection
+    // Load settings from environment variables
+    let settings = Settings::from_env_with_defaults();
+    println!("📝 Loaded settings from environment");
+
+    // Configure PostgreSQL connection using settings
     let config = PostgresConfig::new()
-        .with_database_url("postgresql://postgres:password@localhost:5432/qml")
-        .with_max_connections(10)
-        .with_auto_migrate(true);
+        .with_database_url(&settings.database_url)
+        .with_max_connections(settings.max_connections)
+        .with_auto_migrate(settings.auto_migrate);
 
     // Create storage instance
     println!("🔗 Connecting to PostgreSQL...");

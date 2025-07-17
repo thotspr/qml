@@ -9,6 +9,7 @@ pub mod memory;
 #[cfg(feature = "postgres")]
 pub mod postgres;
 pub mod redis;
+pub mod settings;
 
 #[cfg(test)]
 mod test_locking;
@@ -21,6 +22,7 @@ pub use memory::MemoryStorage;
 #[cfg(feature = "postgres")]
 pub use postgres::PostgresStorage;
 pub use redis::RedisStorage;
+pub use settings::Settings;
 
 /// Core storage trait that defines the interface for job persistence across all backends.
 ///
@@ -633,7 +635,7 @@ pub trait Storage: Send + Sync {
 pub enum StorageInstance {
     /// Memory storage instance
     Memory(MemoryStorage),
-    /// Redis storage instance  
+    /// Redis storage instance
     Redis(RedisStorage),
     /// PostgreSQL storage instance
     #[cfg(feature = "postgres")]

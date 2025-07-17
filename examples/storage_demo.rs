@@ -41,10 +41,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📦 Demo 4: Redis Storage");
     println!("------------------------");
 
-    let redis_config = RedisConfig::new()
-        .with_url("redis://127.0.0.1:6379")
+    let redis_url =
+        std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
+    let redis_password = std::env::var("REDIS_PASSWORD").ok();
+
+    let mut redis_config = RedisConfig::new()
+        .with_url(&redis_url)
         .with_key_prefix("qml_demo")
         .with_database(1); // Use database 1 for demo
+
+    if let Some(password) = redis_password {
+        redis_config = redis_config.with_password(password);
+    }
 
     match StorageInstance::redis(redis_config.clone()).await {
         Ok(redis_storage) => {
