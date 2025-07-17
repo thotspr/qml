@@ -45,6 +45,7 @@ Cargo.toml.orig
 # Environment and secrets
 .env
 .env.*
+!.env.example
 .envrc
 *.secret
 *.key
@@ -115,4 +116,4 @@ $RECYCLE.BIN/
 # Ignore test output
 /tests/output/
 /tests/tmp/
-/tests/logs/ 
+/tests/logs/

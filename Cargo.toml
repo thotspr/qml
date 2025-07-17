@@ -1,11 +1,11 @@
 [package]
 name = "qml"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 authors = ["QML Contributors"]
 description = "A Rust implementation of QML background job processing"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/qml-io/qml"
+repository = "https://github.com/thotspr/qml"
 keywords = ["background", "jobs", "async", "queue", "worker"]
 categories = ["asynchronous", "web-programming"]
 
@@ -22,7 +22,7 @@ redis = { version = "0.32.4", features = [
     "aio",
     "tokio-comp",
     "connection-manager",
-] }
+], optional = true }
 tokio-util = "0.7"
 fastrand = "2.3"
 
@@ -55,6 +55,7 @@ futures = "0.3"            # For join_all in concurrency tests
 default = []
 # Storage backend features
 postgres = ["sqlx"]
+redis = ["dep:redis"]
 # Future features for later phases
 # cron-jobs = ["cron"]
 

@@ -8,18 +8,23 @@ pub mod error;
 pub mod memory;
 #[cfg(feature = "postgres")]
 pub mod postgres;
+#[cfg(feature = "redis")]
 pub mod redis;
+pub mod settings;
 
 #[cfg(test)]
 mod test_locking;
 
 #[cfg(feature = "postgres")]
 pub use config::PostgresConfig;
-pub use config::{MemoryConfig, RedisConfig, StorageConfig};
+#[cfg(feature = "redis")]
+pub use config::RedisConfig;
+pub use config::{MemoryConfig, StorageConfig};
 pub use error::StorageError;
 pub use memory::MemoryStorage;
 #[cfg(feature = "postgres")]
 pub use postgres::PostgresStorage;
+#[cfg(feature = "redis")]
 pub use redis::RedisStorage;
 
 /// Core storage trait that defines the interface for job persistence across all backends.
@@ -633,7 +638,8 @@ pub trait Storage: Send + Sync {
 pub enum StorageInstance {
     /// Memory storage instance
     Memory(MemoryStorage),
-    /// Redis storage instance  
+    /// Redis storage instance
+    #[cfg(feature = "redis")]
     Redis(RedisStorage),
     /// PostgreSQL storage instance
     #[cfg(feature = "postgres")]
@@ -665,6 +671,7 @@ impl StorageInstance {
             StorageConfig::Memory(memory_config) => Ok(StorageInstance::Memory(
                 MemoryStorage::with_config(memory_config),
             )),
+            #[cfg(feature = "redis")]
             StorageConfig::Redis(redis_config) => {
                 let redis_storage = RedisStorage::with_config(redis_config).await?;
                 Ok(StorageInstance::Redis(redis_storage))
@@ -729,6 +736,7 @@ impl StorageInstance {
     /// }
     /// # });
     /// ```
+    #[cfg(feature = "redis")]
     pub async fn redis(config: RedisConfig) -> Result<Self, StorageError> {
         let redis_storage = RedisStorage::with_config(config).await?;
         Ok(StorageInstance::Redis(redis_storage))
@@ -768,6 +776,7 @@ impl Storage for StorageInstance {
     async fn enqueue(&self, job: &Job) -> Result<(), StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.enqueue(job).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.enqueue(job).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.enqueue(job).await,
@@ -777,6 +786,7 @@ impl Storage for StorageInstance {
     async fn get(&self, job_id: &str) -> Result<Option<Job>, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.get(job_id).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.get(job_id).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.get(job_id).await,
@@ -786,6 +796,7 @@ impl Storage for StorageInstance {
     async fn update(&self, job: &Job) -> Result<(), StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.update(job).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.update(job).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.update(job).await,
@@ -795,6 +806,7 @@ impl Storage for StorageInstance {
     async fn delete(&self, job_id: &str) -> Result<bool, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.delete(job_id).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.delete(job_id).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.delete(job_id).await,
@@ -809,6 +821,7 @@ impl Storage for StorageInstance {
     ) -> Result<Vec<Job>, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.list(state_filter, limit, offset).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.list(state_filter, limit, offset).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.list(state_filter, limit, offset).await,
@@ -818,6 +831,7 @@ impl Storage for StorageInstance {
     async fn get_job_counts(&self) -> Result<HashMap<JobState, usize>, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.get_job_counts().await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.get_job_counts().await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.get_job_counts().await,
@@ -827,6 +841,7 @@ impl Storage for StorageInstance {
     async fn get_available_jobs(&self, limit: Option<usize>) -> Result<Vec<Job>, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.get_available_jobs(limit).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.get_available_jobs(limit).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.get_available_jobs(limit).await,
@@ -840,6 +855,7 @@ impl Storage for StorageInstance {
     ) -> Result<Option<Job>, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.fetch_and_lock_job(worker_id, queues).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.fetch_and_lock_job(worker_id, queues).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => {
@@ -860,6 +876,7 @@ impl Storage for StorageInstance {
                     .try_acquire_job_lock(job_id, worker_id, timeout_seconds)
                     .await
             }
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => {
                 storage
                     .try_acquire_job_lock(job_id, worker_id, timeout_seconds)
@@ -877,6 +894,7 @@ impl Storage for StorageInstance {
     async fn release_job_lock(&self, job_id: &str, worker_id: &str) -> Result<bool, StorageError> {
         match self {
             StorageInstance::Memory(storage) => storage.release_job_lock(job_id, worker_id).await,
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => storage.release_job_lock(job_id, worker_id).await,
             #[cfg(feature = "postgres")]
             StorageInstance::Postgres(storage) => storage.release_job_lock(job_id, worker_id).await,
@@ -895,6 +913,7 @@ impl Storage for StorageInstance {
                     .fetch_available_jobs_atomic(worker_id, limit, queues)
                     .await
             }
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(storage) => {
                 storage
                     .fetch_available_jobs_atomic(worker_id, limit, queues)

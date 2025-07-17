@@ -199,7 +199,6 @@ impl JobScheduler {
 mod tests {
     use super::*;
     use crate::storage::MemoryStorage;
-    use tokio::time::{sleep, Duration as TokioDuration};
 
     #[tokio::test]
     async fn test_schedule_job() {

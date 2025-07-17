@@ -1,8 +1,11 @@
 use chrono::{Duration, Utc};
 use qml::{
-    storage::{MemoryConfig, RedisConfig, StorageConfig, StorageInstance},
+    storage::{MemoryConfig, StorageConfig, StorageInstance},
     Job, JobState, Storage,
 };
+
+#[cfg(feature = "redis")]
+use qml::storage::RedisConfig;
 
 /// Test the storage factory pattern with different configurations
 #[tokio::test]
@@ -22,7 +25,11 @@ async fn test_storage_factory_memory() {
 }
 
 #[tokio::test]
+#[cfg(feature = "redis")]
 async fn test_storage_factory_redis() {
+    // Set environment variable for the test
+    std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
+    
     let config = StorageConfig::Redis(
         RedisConfig::new()
             .with_url("redis://127.0.0.1:6379")
@@ -48,6 +55,9 @@ async fn test_storage_factory_redis() {
             println!("Redis not available, skipping Redis factory test");
         }
     }
+    
+    // Clean up environment variable
+    std::env::remove_var("REDIS_URL");
 }
 
 /// Test storage polymorphism - same interface for all storage types
@@ -123,10 +133,13 @@ async fn test_concurrent_storage_access() {
 
     for i in 0..10 {
         let storage_clone = match &storage {
-            StorageInstance::Memory(mem) => {
+            StorageInstance::Memory(_) => {
                 StorageInstance::Memory(MemoryStorage::with_config(MemoryConfig::new()))
             }
+            #[cfg(feature = "redis")]
             StorageInstance::Redis(_) => unreachable!(),
+            #[cfg(feature = "postgres")]
+            StorageInstance::Postgres(_) => unreachable!(),
         };
 
         let handle = tokio::spawn(async move {
@@ -172,27 +185,35 @@ async fn test_config_serialization_roundtrip() {
             assert_eq!(orig.max_jobs, deser.max_jobs);
             assert_eq!(orig.auto_cleanup, deser.auto_cleanup);
         }
-        _ => panic!("Config types don't match"),
     }
 
     // Test Redis config
-    let redis_config = StorageConfig::Redis(
-        RedisConfig::new()
-            .with_url("redis://test:6379")
-            .with_key_prefix("test_prefix")
-            .with_database(5),
-    );
+    #[cfg(feature = "redis")]
+    {
+        // Set environment variable for the test
+        std::env::set_var("REDIS_URL", "redis://test:6379");
+        
+        let redis_config = StorageConfig::Redis(
+            RedisConfig::new()
+                .with_url("redis://test:6379")
+                .with_key_prefix("test_prefix")
+                .with_database(5),
+        );
 
-    let json = serde_json::to_string(&redis_config).unwrap();
-    let deserialized: StorageConfig = serde_json::from_str(&json).unwrap();
+        let json = serde_json::to_string(&redis_config).unwrap();
+        let deserialized: StorageConfig = serde_json::from_str(&json).unwrap();
 
-    match (redis_config, deserialized) {
-        (StorageConfig::Redis(orig), StorageConfig::Redis(deser)) => {
-            assert_eq!(orig.url, deser.url);
-            assert_eq!(orig.key_prefix, deser.key_prefix);
-            assert_eq!(orig.database, deser.database);
+        match (redis_config, deserialized) {
+            (StorageConfig::Redis(orig), StorageConfig::Redis(deser)) => {
+                assert_eq!(orig.url, deser.url);
+                assert_eq!(orig.key_prefix, deser.key_prefix);
+                assert_eq!(orig.database, deser.database);
+            }
+            _ => panic!("Config types don't match"),
         }
-        _ => panic!("Config types don't match"),
+        
+        // Clean up environment variable
+        std::env::remove_var("REDIS_URL");
     }
 }
 

@@ -3,13 +3,31 @@
 A production-ready Rust implementation of QML background job processing, designed for high-performance, reliability, and scalability.
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
 
 ## 🚀 **Status: Production Ready** ✅
 
 **qml** is a complete, enterprise-grade background job processing system with:
 
-- **3 Storage Backends**: Memory, Redis, PostgreSQL with atomic operations
+- **3 Storage Backends**: Memory, Redis, PostgreSQL w## 🔒 **Security & Production Notes**
+
+### Development Credentials Warning
+
+⚠️ **IMPORTANT**: This library includes hardcoded development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
+
+- `password` - Default PostgreSQL password
+- `development_secret_key_32_chars_` - Default secret key
+- `development_api_token` - Default API token
+
+### Production Deployment
+
+1. Always set proper environment variables (see `.env.example`)
+2. Use strong, unique passwords and secrets
+3. Configure proper database access controls
+4. Enable TLS/SSL for database connections
+5. Regularly rotate secrets and credentials
+
+The library follows security best practices and is safe for public repositories when proper production configuration is used.ons
 - **Multi-threaded Processing**: Worker pools with configurable concurrency
 - **Web Dashboard**: Real-time monitoring with WebSocket updates
 - **Race Condition Prevention**: Comprehensive locking across all backends
@@ -492,14 +510,44 @@ docker run -d --name redis -p 6379:6379 redis:7-alpine
 cargo test --features postgres
 ```
 
-## 📄 **License**
+## � **Security & Production Notes**
+
+**⚠️ IMPORTANT: Development Credentials Warning**
+
+This library includes hardcoded development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
+
+- `password` - Default PostgreSQL password
+- `development_secret_key_32_chars_` - Default secret key
+- `development_api_token` - Default API token
+
+**Production Deployment:**
+1. Always set proper environment variables (see `.env.example`)
+2. Use strong, unique passwords and secrets
+3. Configure proper database access controls
+4. Enable TLS/SSL for database connections
+5. Regularly rotate secrets and credentials
+
+The library follows security best practices and is safe for public repositories when proper production configuration is used.
+
+## �📄 **License**
 
 Licensed under either of:
 
 - Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE))
-- MIT License ([LICENSE-MIT](LICENSE-MIT))
+## License
+
+Licensed under either of
+
+- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+- MIT License ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
+
+### Contribution
+
+Unless you explicitly state otherwise, any contribution intentionally submitted
+for inclusion in the work by you, as defined in the Apache-2.0 license, shall be
+dual licensed as above, without any additional terms or conditions.
 
 ---
 

@@ -259,10 +259,10 @@
 //! async fn test_job_processing() {
 //!     let storage = MemoryStorage::new();
 //!     let job = Job::new("test_job", vec!["arg1".to_string()]);
-//!     
+//!
 //!     storage.enqueue(&job).await.unwrap();
 //!     let retrieved = storage.get(&job.id).await.unwrap().unwrap();
-//!     
+//!
 //!     assert_eq!(job.id, retrieved.id);
 //! }
 //! ```
@@ -275,18 +275,18 @@
 //! #[tokio::test]
 //! async fn test_high_concurrency() {
 //!     let storage = std::sync::Arc::new(MemoryStorage::new());
-//!     
+//!
 //!     // Create 100 jobs concurrently
 //!     let jobs: Vec<_> = (0..100).map(|i| {
 //!         Job::new("concurrent_job", vec![i.to_string()])
 //!     }).collect();
-//!     
+//!
 //!     let futures: Vec<_> = jobs.iter().map(|job| {
 //!         let storage = storage.clone();
 //!         let job = job.clone();
 //!         async move { storage.enqueue(&job).await }
 //!     }).collect();
-//!     
+//!
 //!     let results = join_all(futures).await;
 //!     assert!(results.iter().all(|r| r.is_ok()));
 //! }
@@ -324,7 +324,7 @@
 //! # Basic job creation and serialization
 //! cargo run --example basic_job
 //!
-//! # Multi-backend storage operations  
+//! # Multi-backend storage operations
 //! cargo run --example storage_demo
 //!
 //! # Real-time dashboard with WebSocket
@@ -372,8 +372,10 @@ pub use processing::{
     BackgroundJobServer, JobActivator, JobProcessor, JobScheduler, RetryPolicy, RetryStrategy,
     ServerConfig, Worker, WorkerConfig, WorkerContext, WorkerRegistry, WorkerResult,
 };
-pub use storage::{
-    MemoryStorage, RedisStorage, Storage, StorageConfig, StorageError, StorageInstance,
-};
+pub use storage::{MemoryStorage, Storage, StorageConfig, StorageError, StorageInstance};
+
+#[cfg(feature = "redis")]
+pub use storage::{RedisConfig, RedisStorage};
+
 #[cfg(feature = "postgres")]
 pub use storage::{PostgresConfig, PostgresStorage};
