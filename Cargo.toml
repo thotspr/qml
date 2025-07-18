@@ -1,5 +1,5 @@
 [package]
-name = "qml"
+name = "qml-rs"
 version = "0.1.0-alpha"
 edition = "2024"
 authors = ["QML Contributors"]
