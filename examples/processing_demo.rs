@@ -19,8 +19,8 @@ use qml::{
     StorageInstance, Worker, WorkerContext, WorkerRegistry, WorkerResult,
 };
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
     Arc,
+    atomic::{AtomicUsize, Ordering},
 };
 use tokio::time::sleep;
 use tracing::{error, info, warn};
@@ -37,6 +37,7 @@ impl EmailWorker {
         }
     }
 
+    #[allow(dead_code)]
     fn sent_count(&self) -> usize {
         self.sent_count.load(Ordering::Relaxed)
     }
@@ -44,11 +45,7 @@ impl EmailWorker {
 
 #[async_trait]
 impl Worker for EmailWorker {
-    async fn execute(
-        &self,
-        job: &Job,
-        context: &WorkerContext,
-    ) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, context: &WorkerContext) -> qml::Result<WorkerResult> {
         let email = &job.arguments[0];
         let _message = &job.arguments[1];
 
@@ -91,6 +88,7 @@ impl PaymentWorker {
         }
     }
 
+    #[allow(dead_code)]
     fn processed_count(&self) -> usize {
         self.processed_count.load(Ordering::Relaxed)
     }
@@ -98,11 +96,7 @@ impl PaymentWorker {
 
 #[async_trait]
 impl Worker for PaymentWorker {
-    async fn execute(
-        &self,
-        job: &Job,
-        _context: &WorkerContext,
-    ) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml::Result<WorkerResult> {
         let order_id = &job.arguments[0];
         let amount = &job.arguments[1];
 
@@ -138,11 +132,7 @@ struct ReportWorker;
 
 #[async_trait]
 impl Worker for ReportWorker {
-    async fn execute(
-        &self,
-        job: &Job,
-        _context: &WorkerContext,
-    ) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml::Result<WorkerResult> {
         let report_type = &job.arguments[0];
         let period = &job.arguments[1];
 

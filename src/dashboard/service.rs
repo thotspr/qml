@@ -163,10 +163,7 @@ impl DashboardService {
     }
 
     /// Get recent jobs (limited sample)
-    pub async fn get_recent_jobs(
-        &self,
-        limit: Option<usize>,
-    ) -> Result<Vec<JobDetails>, QmlError> {
+    pub async fn get_recent_jobs(&self, limit: Option<usize>) -> Result<Vec<JobDetails>, QmlError> {
         let limit = limit.unwrap_or(50);
         let jobs = self
             .storage
@@ -202,10 +199,7 @@ impl DashboardService {
     }
 
     /// Get jobs by state (limited sample)
-    pub async fn get_jobs_by_state(
-        &self,
-        state: JobState,
-    ) -> Result<Vec<JobDetails>, QmlError> {
+    pub async fn get_jobs_by_state(&self, state: JobState) -> Result<Vec<JobDetails>, QmlError> {
         let jobs = self
             .storage
             .list(Some(&state), Some(100), None)
@@ -270,17 +264,16 @@ impl DashboardService {
 
     /// Retry a failed job (simplified)
     pub async fn retry_job(&self, job_id: &str) -> Result<bool, QmlError> {
-        let mut job =
-            match self
-                .storage
-                .get(job_id)
-                .await
-                .map_err(|e| QmlError::StorageError {
-                    message: e.to_string(),
-                })? {
-                Some(job) => job,
-                None => return Ok(false),
-            };
+        let mut job = match self
+            .storage
+            .get(job_id)
+            .await
+            .map_err(|e| QmlError::StorageError {
+                message: e.to_string(),
+            })? {
+            Some(job) => job,
+            None => return Ok(false),
+        };
 
         // Only retry failed jobs
         if !matches!(job.state, JobState::Failed { .. }) {

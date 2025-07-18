@@ -1,7 +1,7 @@
 use axum::{
     extract::{
-        ws::{Message, WebSocket, WebSocketUpgrade},
         State,
+        ws::{Message, WebSocket, WebSocketUpgrade},
     },
     response::Response,
 };
@@ -9,7 +9,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
 
 use crate::dashboard::service::{DashboardService, ServerStatistics};
@@ -105,14 +105,14 @@ impl WebSocketManager {
         };
 
         if let Ok(msg_str) = serde_json::to_string(&connection_msg) {
-            let _ = sender.send(Message::Text(msg_str)).await;
+            let _ = sender.send(Message::Text(msg_str.into())).await;
         }
 
         // Send initial statistics
         if let Ok(stats) = dashboard_service.get_server_statistics().await {
             let stats_msg = DashboardMessage::StatisticsUpdate { data: stats };
             if let Ok(msg_str) = serde_json::to_string(&stats_msg) {
-                let _ = sender.send(Message::Text(msg_str)).await;
+                let _ = sender.send(Message::Text(msg_str.into())).await;
             }
         }
 
@@ -146,7 +146,7 @@ impl WebSocketManager {
             _ = async {
                 while let Ok(msg) = receiver.recv().await {
                     if let Ok(msg_str) = serde_json::to_string(&msg) {
-                        if sender.send(Message::Text(msg_str)).await.is_err() {
+                        if sender.send(Message::Text(msg_str.into())).await.is_err() {
                             tracing::info!("Failed to send message to client {}, removing connection", client_id);
                             break;
                         }

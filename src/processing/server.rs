@@ -11,8 +11,8 @@ use tokio::time::{interval, sleep};
 use tracing::{debug, error, info};
 
 use super::{
-    processor::JobProcessor, scheduler::JobScheduler, worker::WorkerConfig, RetryPolicy,
-    WorkerRegistry,
+    RetryPolicy, WorkerRegistry, processor::JobProcessor, scheduler::JobScheduler,
+    worker::WorkerConfig,
 };
 use crate::error::{QmlError, Result};
 use crate::storage::Storage;

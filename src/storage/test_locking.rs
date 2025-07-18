@@ -6,8 +6,8 @@
 
 use crate::core::Job;
 use crate::storage::{MemoryStorage, Storage};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -577,9 +577,7 @@ async fn create_postgres_storage() -> Option<PostgresStorage> {
 
     let database_url = env::var("DATABASE_URL")
         .or_else(|_| env::var("POSTGRES_URL"))
-        .unwrap_or_else(|_| {
-            "postgresql://postgres:password@localhost:5432/qml_test".to_string()
-        });
+        .unwrap_or_else(|_| "postgresql://postgres:password@localhost:5432/qml_test".to_string());
 
     let config = PostgresConfig::new().with_database_url(database_url);
 

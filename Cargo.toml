@@ -5,7 +5,7 @@ edition = "2024"
 authors = ["QML Contributors"]
 description = "A Rust implementation of QML background job processing"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/thotspr/qml"
+repository = ""
 keywords = ["background", "jobs", "async", "queue", "worker"]
 categories = ["asynchronous", "web-programming"]
 
@@ -27,11 +27,11 @@ tokio-util = "0.7"
 fastrand = "2.3"
 
 # Dashboard and web server dependencies
-axum = { version = "0.7", features = ["ws"] }
+axum = { version = "0.8.4", features = ["ws"] }
 tower = "0.5"
-tower-http = { version = "0.5", features = ["cors", "fs"] }
+tower-http = { version = "0.6.6", features = ["cors", "fs"] }
 hyper = { version = "1.0", features = ["full"] }
-tokio-tungstenite = "0.21"                                  # For WebSocket support
+tokio-tungstenite = "0.27.0"                                  # For WebSocket support
 futures-util = "0.3"
 
 # PostgreSQL storage support

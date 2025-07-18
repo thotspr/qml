@@ -42,11 +42,14 @@ impl JobScheduler {
             self.poll_interval
         );
 
-        let mut interval = interval(self.poll_interval.to_std().map_err(|e| {
-            QmlError::ConfigurationError {
-                message: format!("Invalid poll interval: {}", e),
-            }
-        })?);
+        let mut interval =
+            interval(
+                self.poll_interval
+                    .to_std()
+                    .map_err(|e| QmlError::ConfigurationError {
+                        message: format!("Invalid poll interval: {}", e),
+                    })?,
+            );
 
         loop {
             interval.tick().await;

@@ -1,4 +1,4 @@
-use axum::{http::StatusCode, response::Html, routing::get, Router};
+use axum::{Router, http::StatusCode, response::Html, routing::get};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tokio::net::TcpListener;
@@ -8,7 +8,7 @@ use tower_http::cors::CorsLayer;
 use crate::dashboard::{
     routes::create_router,
     service::DashboardService,
-    websocket::{websocket_handler, WebSocketManager},
+    websocket::{WebSocketManager, websocket_handler},
 };
 use crate::storage::Storage;
 

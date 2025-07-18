@@ -212,7 +212,7 @@ local job_ids = redis.call('ZRANGEBYSCORE', available_key, '-inf', '+inf', 'LIMI
 if #job_ids == 0 then return nil end
 
 local job_id = job_ids[1]
-local job_key = 'hangfire:job:' .. job_id
+local job_key = 'qml:job:' .. job_id
 local job_data = redis.call('GET', job_key)
 
 -- Benchmark shows: ~500μs execution time for Lua script
@@ -231,7 +231,7 @@ use std::time::Instant;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = PostgresConfig::new()
-        .with_database_url("postgresql://hangfire:test@localhost:5432/hangfire_bench")
+        .with_database_url("postgresql://qml:test@localhost:5432/qml_bench")
         .with_max_connections(50)
         .with_auto_migrate(true);
 
@@ -284,7 +284,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 -- Benchmark query: fetch_and_lock_job (PostgreSQL)
 SELECT id, method, arguments, created_at, state, queue, priority,
        max_retries, metadata, job_type, timeout_seconds
-FROM hangfire_jobs
+FROM qml_jobs
 WHERE state->>'type' = 'enqueued'
   AND (queue = ANY($1) OR $1 IS NULL)
 ORDER BY priority DESC, created_at ASC
@@ -601,20 +601,20 @@ let bulk_config = ServerConfig::new("bulk-worker")
 
 ```sql
 -- Essential indexes for PostgreSQL performance
-CREATE INDEX CONCURRENTLY idx_jobs_state_priority ON hangfire_jobs
+CREATE INDEX CONCURRENTLY idx_jobs_state_priority ON qml_jobs
     ((state->>'type'), priority DESC, created_at ASC)
     WHERE state->>'type' IN ('enqueued', 'scheduled');
 
-CREATE INDEX CONCURRENTLY idx_jobs_queue_state ON hangfire_jobs
+CREATE INDEX CONCURRENTLY idx_jobs_queue_state ON qml_jobs
     (queue, (state->>'type'), priority DESC)
     WHERE state->>'type' = 'enqueued';
 
-CREATE INDEX CONCURRENTLY idx_jobs_retry_time ON hangfire_jobs
+CREATE INDEX CONCURRENTLY idx_jobs_retry_time ON qml_jobs
     ((state->>'retry_at')::timestamp)
     WHERE state->>'type' = 'awaiting_retry';
 
 -- Partial index for failed jobs
-CREATE INDEX CONCURRENTLY idx_jobs_failed ON hangfire_jobs
+CREATE INDEX CONCURRENTLY idx_jobs_failed ON qml_jobs
     ((state->>'failed_at')::timestamp)
     WHERE state->>'type' = 'failed';
 ```
@@ -681,12 +681,12 @@ SELECT
     seq_scan, seq_tup_read,
     idx_scan, idx_tup_fetch
 FROM pg_stat_user_tables
-WHERE tablename LIKE 'hangfire_%';
+WHERE tablename LIKE 'qml_%';
 
 -- Check query performance
 SELECT query, calls, total_time, mean_time, max_time
 FROM pg_stat_statements
-WHERE query LIKE '%hangfire%'
+WHERE query LIKE '%qml%'
 ORDER BY total_time DESC;
 ```
 

@@ -264,7 +264,8 @@ pub struct PostgresConfig {
 impl Default for PostgresConfig {
     fn default() -> Self {
         Self {
-            database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL environment variable must be set"),
+            database_url: std::env::var("DATABASE_URL")
+                .expect("DATABASE_URL environment variable must be set"),
             max_connections: 20,
             min_connections: 1,
             connect_timeout: Duration::from_secs(30),
@@ -392,13 +393,13 @@ mod tests {
     fn test_redis_config_default() {
         // Set the environment variable for the test
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let config = RedisConfig::default();
         assert_eq!(config.url, "redis://127.0.0.1:6379");
         assert_eq!(config.pool_size, 10);
         assert_eq!(config.key_prefix, "qml");
         assert!(!config.tls);
-        
+
         // Clean up the environment variable
         std::env::remove_var("REDIS_URL");
     }
@@ -408,7 +409,7 @@ mod tests {
     fn test_redis_config_builder() {
         // Set the environment variable for the test
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let config = RedisConfig::new()
             .with_url("redis://localhost:6380")
             .with_pool_size(20)
@@ -424,7 +425,7 @@ mod tests {
         assert_eq!(config.username, Some("user".to_string()));
         assert_eq!(config.password, Some("pass".to_string()));
         assert!(config.tls);
-        
+
         // Clean up the environment variable
         std::env::remove_var("REDIS_URL");
     }
@@ -434,14 +435,14 @@ mod tests {
     fn test_redis_full_url() {
         // Set the environment variable for the test
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let config = RedisConfig::new()
             .with_url("redis://localhost:6379")
             .with_credentials("user", "pass")
             .with_database(5);
 
         assert_eq!(config.full_url(), "redis://user:pass@localhost:6379/5");
-        
+
         // Clean up the environment variable
         std::env::remove_var("REDIS_URL");
     }
@@ -451,14 +452,14 @@ mod tests {
     fn test_redis_full_url_password_only() {
         // Set the environment variable for the test
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let config = RedisConfig::new()
             .with_url("redis://localhost:6379")
             .with_password("pass")
             .with_database(2);
 
         assert_eq!(config.full_url(), "redis://:pass@localhost:6379/2");
-        
+
         // Clean up the environment variable
         std::env::remove_var("REDIS_URL");
     }
@@ -468,7 +469,7 @@ mod tests {
     fn test_storage_config_serialization() {
         // Set the environment variable for the test
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let memory_config = StorageConfig::Memory(MemoryConfig::default());
         let redis_config = StorageConfig::Redis(RedisConfig::default());
 
@@ -478,7 +479,7 @@ mod tests {
 
         let _: StorageConfig = serde_json::from_str(&memory_json).unwrap();
         let _: StorageConfig = serde_json::from_str(&redis_json).unwrap();
-        
+
         // Clean up the environment variable
         std::env::remove_var("REDIS_URL");
     }
@@ -487,8 +488,11 @@ mod tests {
     #[cfg(feature = "postgres")]
     fn test_postgres_config_default() {
         // Set the environment variable for the test
-        std::env::set_var("DATABASE_URL", "postgresql://postgres:password@localhost:5432/qml");
-        
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgresql://postgres:password@localhost:5432/qml",
+        );
+
         let config = PostgresConfig::default();
         assert_eq!(
             config.database_url,
@@ -500,7 +504,7 @@ mod tests {
         assert_eq!(config.schema_name, "public");
         assert!(config.auto_migrate);
         assert!(!config.require_ssl);
-        
+
         // Clean up the environment variable
         std::env::remove_var("DATABASE_URL");
     }
@@ -509,8 +513,11 @@ mod tests {
     #[cfg(feature = "postgres")]
     fn test_postgres_config_builder() {
         // Set the environment variable for the test
-        std::env::set_var("DATABASE_URL", "postgresql://postgres:password@localhost:5432/qml");
-        
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgresql://postgres:password@localhost:5432/qml",
+        );
+
         let config = PostgresConfig::new()
             .with_database_url("postgresql://user:pass@localhost:5433/testdb")
             .with_max_connections(50)
@@ -530,7 +537,7 @@ mod tests {
         assert_eq!(config.schema_name, "qml");
         assert!(!config.auto_migrate);
         assert!(config.require_ssl);
-        
+
         // Clean up the environment variable
         std::env::remove_var("DATABASE_URL");
     }
@@ -539,14 +546,17 @@ mod tests {
     #[cfg(feature = "postgres")]
     fn test_postgres_full_table_name() {
         // Set the environment variable for the test
-        std::env::set_var("DATABASE_URL", "postgresql://postgres:password@localhost:5432/qml");
-        
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgresql://postgres:password@localhost:5432/qml",
+        );
+
         let config = PostgresConfig::new()
             .with_schema_name("qml")
             .with_table_name("jobs");
 
         assert_eq!(config.full_table_name(), "qml.jobs");
-        
+
         // Clean up the environment variable
         std::env::remove_var("DATABASE_URL");
     }
@@ -555,14 +565,17 @@ mod tests {
     #[cfg(feature = "postgres")]
     fn test_postgres_config_serialization() {
         // Set the environment variable for the test
-        std::env::set_var("DATABASE_URL", "postgresql://postgres:password@localhost:5432/qml");
-        
+        std::env::set_var(
+            "DATABASE_URL",
+            "postgresql://postgres:password@localhost:5432/qml",
+        );
+
         let postgres_config = StorageConfig::Postgres(PostgresConfig::default());
 
         // Test that config can be serialized/deserialized
         let postgres_json = serde_json::to_string(&postgres_config).unwrap();
         let _: StorageConfig = serde_json::from_str(&postgres_json).unwrap();
-        
+
         // Clean up the environment variable
         std::env::remove_var("DATABASE_URL");
     }

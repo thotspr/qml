@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::Utc;
-use redis::{aio::ConnectionManager, AsyncCommands, Client, RedisResult};
+use redis::{AsyncCommands, Client, RedisResult, aio::ConnectionManager};
 use serde_json;
 use std::collections::HashMap;
 use tokio::time::timeout;

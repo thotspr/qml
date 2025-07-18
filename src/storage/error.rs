@@ -185,9 +185,7 @@ impl From<StorageError> for QmlError {
     fn from(err: StorageError) -> Self {
         match err {
             StorageError::JobNotFound { job_id } => QmlError::JobNotFound { job_id },
-            StorageError::Serialization { message, .. } => {
-                QmlError::SerializationError { message }
-            }
+            StorageError::Serialization { message, .. } => QmlError::SerializationError { message },
             _ => QmlError::StorageError {
                 message: err.to_string(),
             },

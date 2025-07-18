@@ -1,7 +1,7 @@
 use chrono::{Duration, Utc};
 use qml::{
-    storage::{MemoryConfig, StorageConfig, StorageInstance},
     Job, JobState, Storage,
+    storage::{MemoryConfig, StorageConfig, StorageInstance},
 };
 
 #[cfg(feature = "redis")]
@@ -29,7 +29,7 @@ async fn test_storage_factory_memory() {
 async fn test_storage_factory_redis() {
     // Set environment variable for the test
     std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-    
+
     let config = StorageConfig::Redis(
         RedisConfig::new()
             .with_url("redis://127.0.0.1:6379")
@@ -55,7 +55,7 @@ async fn test_storage_factory_redis() {
             println!("Redis not available, skipping Redis factory test");
         }
     }
-    
+
     // Clean up environment variable
     std::env::remove_var("REDIS_URL");
 }
@@ -192,7 +192,7 @@ async fn test_config_serialization_roundtrip() {
     {
         // Set environment variable for the test
         std::env::set_var("REDIS_URL", "redis://test:6379");
-        
+
         let redis_config = StorageConfig::Redis(
             RedisConfig::new()
                 .with_url("redis://test:6379")
@@ -211,7 +211,7 @@ async fn test_config_serialization_roundtrip() {
             }
             _ => panic!("Config types don't match"),
         }
-        
+
         // Clean up environment variable
         std::env::remove_var("REDIS_URL");
     }

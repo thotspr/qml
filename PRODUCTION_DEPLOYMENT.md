@@ -44,15 +44,15 @@ This guide covers deploying qml in production environments with multiple storage
 
 ```sql
 -- Create database and user
-CREATE DATABASE hangfire_production;
-CREATE USER hangfire_app WITH PASSWORD 'your_secure_password_here';
+CREATE DATABASE qml_production;
+CREATE USER qml_app WITH PASSWORD 'your_secure_password_here';
 
--- Grant permissions
-GRANT ALL PRIVILEGES ON DATABASE hangfire_production TO hangfire_app;
-\c hangfire_production
-GRANT ALL ON SCHEMA public TO hangfire_app;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO hangfire_app;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO hangfire_app;
+# Grant permissions
+GRANT ALL PRIVILEGES ON DATABASE qml_production TO qml_app;
+\c qml_production
+GRANT ALL ON SCHEMA public TO qml_app;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO qml_app;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO qml_app;
 ```
 
 ### **Production Configuration**
@@ -105,7 +105,7 @@ work_mem = 4MB
 ```ini
 # pgbouncer.ini
 [databases]
-hangfire_production = host=localhost port=5432 dbname=hangfire_production
+qml_production = host=localhost port=5432 dbname=qml_production
 
 [pgbouncer]
 pool_mode = transaction
@@ -119,11 +119,11 @@ server_reset_query = DISCARD ALL
 
 ```bash
 # Production environment variables
-export DATABASE_URL="postgresql://hangfire_app:password@pgbouncer:6543/hangfire_production"
-export HANGFIRE_WORKERS=20
-export HANGFIRE_QUEUES="critical,normal,bulk"
+export DATABASE_URL="postgresql://qml_app:password@pgbouncer:6543/qml_production"
+export QML_WORKERS=20
+export QML_QUEUES="critical,normal,bulk"
 export RUST_LOG=info
-export HANGFIRE_JOB_TIMEOUT=300
+export QML_JOB_TIMEOUT=300
 ```
 
 ## 🔴 **Redis Cluster Configuration**
@@ -162,7 +162,7 @@ let config = RedisConfig::new()
     .with_pool_size(30)                 // Scale with worker count
     .with_connection_timeout(Duration::from_secs(10))
     .with_command_timeout(Duration::from_secs(5))
-    .with_key_prefix("hangfire:prod")
+    .with_key_prefix("qml:prod")
     .with_database(Some(1))             // Use dedicated database
     .with_password(Some(std::env::var("REDIS_PASSWORD")?))
     .with_completed_job_ttl(Some(Duration::from_secs(86400)))  // 24h retention
@@ -206,7 +206,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-COPY --from=builder /app/target/release/hangfire-app .
+COPY --from=builder /app/target/release/qml-app .
 COPY --from=builder /app/migrations ./migrations
 
 ENV RUST_LOG=info
@@ -214,7 +214,7 @@ EXPOSE 8080
 
 USER 1000:1000
 
-CMD ["./hangfire-app"]
+CMD ["./qml-app"]
 ```
 
 ### **Production Docker Compose**
@@ -227,8 +227,8 @@ services:
   postgres:
     image: postgres:15
     environment:
-      POSTGRES_DB: hangfire_production
-      POSTGRES_USER: hangfire_app
+      POSTGRES_DB: qml_production
+      POSTGRES_USER: qml_app
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
@@ -261,12 +261,12 @@ services:
           cpus: "0.5"
     restart: unless-stopped
 
-  hangfire-app:
+  qml-app:
     build: .
     environment:
-      DATABASE_URL: postgresql://hangfire_app:${POSTGRES_PASSWORD}@postgres:5432/hangfire_production
-      HANGFIRE_WORKERS: 10
-      HANGFIRE_QUEUES: critical,normal,bulk
+      DATABASE_URL: postgresql://qml_app:${POSTGRES_PASSWORD}@postgres:5432/qml_production
+      QML_WORKERS: 10
+      QML_QUEUES: critical,normal,bulk
       RUST_LOG: info
     depends_on:
       - postgres
@@ -288,11 +288,11 @@ services:
       timeout: 10s
       retries: 3
 
-  hangfire-dashboard:
+  qml-dashboard:
     build: .
-    command: ["./hangfire-app", "--dashboard-only"]
+    command: ["./qml-app", "--dashboard-only"]
     environment:
-      DATABASE_URL: postgresql://hangfire_app:${POSTGRES_PASSWORD}@postgres:5432/hangfire_production
+      DATABASE_URL: postgresql://qml_app:${POSTGRES_PASSWORD}@postgres:5432/qml_production
     depends_on:
       - postgres
     ports:
@@ -318,7 +318,7 @@ networks:
 ```bash
 # .env.prod
 POSTGRES_PASSWORD=your_ultra_secure_password_here
-COMPOSE_PROJECT_NAME=hangfire-prod
+COMPOSE_PROJECT_NAME=qml-prod
 COMPOSE_FILE=docker-compose.prod.yml
 ```
 
@@ -327,25 +327,25 @@ COMPOSE_FILE=docker-compose.prod.yml
 ### **ConfigMap and Secrets**
 
 ```yaml
-# hangfire-config.yaml
+# qml-config.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: hangfire-config
-  namespace: hangfire
+  name: qml-config
+  namespace: qml
 data:
-  HANGFIRE_WORKERS: "20"
-  HANGFIRE_QUEUES: "critical,normal,bulk"
+  QML_WORKERS: "20"
+  QML_QUEUES: "critical,normal,bulk"
   RUST_LOG: "info"
-  HANGFIRE_JOB_TIMEOUT: "300"
-  HANGFIRE_POLLING_INTERVAL: "1"
+  QML_JOB_TIMEOUT: "300"
+  QML_POLLING_INTERVAL: "1"
 
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: hangfire-secrets
-  namespace: hangfire
+  name: qml-secrets
+  namespace: qml
 type: Opaque
 data:
   database-url: cG9zdGdyZXNxbDovL2hhbmdmaXJlX2FwcDpwYXNzd29yZEBwb3N0Z3Jlcy1zZXJ2aWNlOjU0MzIvaGFuZ2ZpcmVfcHJvZHVjdGlvbg== # base64 encoded
@@ -360,7 +360,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: hangfire
+  namespace: qml
 spec:
   serviceName: postgres-service
   replicas: 1
@@ -379,9 +379,9 @@ spec:
             - containerPort: 5432
           env:
             - name: POSTGRES_DB
-              value: hangfire_production
+              value: qml_production
             - name: POSTGRES_USER
-              value: hangfire_app
+              value: qml_app
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -410,7 +410,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - hangfire_app
+                - qml_app
             initialDelaySeconds: 30
             timeoutSeconds: 5
           readinessProbe:
@@ -418,7 +418,7 @@ spec:
               command:
                 - pg_isready
                 - -U
-                - hangfire_app
+                - qml_app
             initialDelaySeconds: 5
             timeoutSeconds: 1
   volumeClaimTemplates:
@@ -436,7 +436,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
-  namespace: hangfire
+  namespace: qml
 spec:
   selector:
     app: postgres
@@ -449,12 +449,12 @@ spec:
 ### **QML Job Processing Deployment**
 
 ```yaml
-# hangfire-workers.yaml
+# qml-workers.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hangfire-workers
-  namespace: hangfire
+  name: qml-workers
+  namespace: qml
 spec:
   replicas: 3
   strategy:
@@ -464,30 +464,30 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: hangfire-workers
+      app: qml-workers
   template:
     metadata:
       labels:
-        app: hangfire-workers
+        app: qml-workers
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "8080"
         prometheus.io/path: "/metrics"
     spec:
       containers:
-        - name: hangfire
-          image: your-registry/hangfire-app:latest
+        - name: qml
+          image: your-registry/qml-app:latest
           ports:
             - containerPort: 8080
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: hangfire-secrets
+                  name: qml-secrets
                   key: database-url
           envFrom:
             - configMapRef:
-                name: hangfire-config
+                name: qml-config
           resources:
             requests:
               memory: "256Mi"
@@ -526,40 +526,40 @@ spec:
                     - key: app
                       operator: In
                       values:
-                        - hangfire-workers
+                        - qml-workers
                 topologyKey: kubernetes.io/hostname
 ```
 
 ### **QML Dashboard Service**
 
 ```yaml
-# hangfire-dashboard.yaml
+# qml-dashboard.yaml
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hangfire-dashboard
-  namespace: hangfire
+  name: qml-dashboard
+  namespace: qml
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: hangfire-dashboard
+      app: qml-dashboard
   template:
     metadata:
       labels:
-        app: hangfire-dashboard
+        app: qml-dashboard
     spec:
       containers:
         - name: dashboard
-          image: your-registry/hangfire-app:latest
-          command: ["./hangfire-app", "--dashboard-only"]
+          image: your-registry/qml-app:latest
+          command: ["./qml-app", "--dashboard-only"]
           ports:
             - containerPort: 8080
           env:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: hangfire-secrets
+                  name: qml-secrets
                   key: database-url
           resources:
             requests:
@@ -573,11 +573,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: hangfire-dashboard-service
-  namespace: hangfire
+  name: qml-dashboard-service
+  namespace: qml
 spec:
   selector:
-    app: hangfire-dashboard
+    app: qml-dashboard
   ports:
     - port: 80
       targetPort: 8080
@@ -587,27 +587,27 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: hangfire-dashboard-ingress
-  namespace: hangfire
+  name: qml-dashboard-ingress
+  namespace: qml
   annotations:
     kubernetes.io/ingress.class: nginx
     cert-manager.io/cluster-issuer: letsencrypt-prod
     nginx.ingress.kubernetes.io/auth-basic: "Authentication Required"
-    nginx.ingress.kubernetes.io/auth-secret: hangfire-auth
+    nginx.ingress.kubernetes.io/auth-secret: qml-auth
 spec:
   tls:
     - hosts:
-        - hangfire.yourcompany.com
-      secretName: hangfire-dashboard-tls
+        - qml.yourcompany.com
+      secretName: qml-dashboard-tls
   rules:
-    - host: hangfire.yourcompany.com
+    - host: qml.yourcompany.com
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: hangfire-dashboard-service
+                name: qml-dashboard-service
                 port:
                   number: 80
 ```
@@ -615,17 +615,17 @@ spec:
 ### **Horizontal Pod Autoscaler**
 
 ```yaml
-# hangfire-hpa.yaml
+# qml-hpa.yaml
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: hangfire-workers-hpa
-  namespace: hangfire
+  name: qml-workers-hpa
+  namespace: qml
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: hangfire-workers
+    name: qml-workers
   minReplicas: 3
   maxReplicas: 20
   metrics:
@@ -675,14 +675,14 @@ struct QMLMetrics {
 impl QMLMetrics {
     fn new() -> Self {
         Self {
-            jobs_processed: Counter::new("hangfire_jobs_processed_total", "Total processed jobs").unwrap(),
-            jobs_failed: Counter::new("hangfire_jobs_failed_total", "Total failed jobs").unwrap(),
-            active_workers: Gauge::new("hangfire_active_workers", "Number of active workers").unwrap(),
+            jobs_processed: Counter::new("qml_jobs_processed_total", "Total processed jobs").unwrap(),
+            jobs_failed: Counter::new("qml_jobs_failed_total", "Total failed jobs").unwrap(),
+            active_workers: Gauge::new("qml_active_workers", "Number of active workers").unwrap(),
             job_duration: Histogram::with_opts(
-                HistogramOpts::new("hangfire_job_duration_seconds", "Job execution duration")
+                HistogramOpts::new("qml_job_duration_seconds", "Job execution duration")
                     .buckets(vec![0.1, 0.5, 1.0, 5.0, 10.0, 30.0, 60.0])
             ).unwrap(),
-            queue_size: Gauge::new("hangfire_queue_size", "Number of jobs in queue").unwrap(),
+            queue_size: Gauge::new("qml_queue_size", "Number of jobs in queue").unwrap(),
         }
     }
 }
@@ -700,11 +700,11 @@ impl QMLMetrics {
         "type": "graph",
         "targets": [
           {
-            "expr": "rate(hangfire_jobs_processed_total[5m])",
+            "expr": "rate(qml_jobs_processed_total[5m])",
             "legendFormat": "Processed/sec"
           },
           {
-            "expr": "rate(hangfire_jobs_failed_total[5m])",
+            "expr": "rate(qml_jobs_failed_total[5m])",
             "legendFormat": "Failed/sec"
           }
         ]
@@ -714,7 +714,7 @@ impl QMLMetrics {
         "type": "singlestat",
         "targets": [
           {
-            "expr": "sum(hangfire_queue_size)",
+            "expr": "sum(qml_queue_size)",
             "legendFormat": "Total Jobs Queued"
           }
         ]
@@ -724,15 +724,15 @@ impl QMLMetrics {
         "type": "graph",
         "targets": [
           {
-            "expr": "histogram_quantile(0.50, rate(hangfire_job_duration_seconds_bucket[5m]))",
+            "expr": "histogram_quantile(0.50, rate(qml_job_duration_seconds_bucket[5m]))",
             "legendFormat": "p50"
           },
           {
-            "expr": "histogram_quantile(0.95, rate(hangfire_job_duration_seconds_bucket[5m]))",
+            "expr": "histogram_quantile(0.95, rate(qml_job_duration_seconds_bucket[5m]))",
             "legendFormat": "p95"
           },
           {
-            "expr": "histogram_quantile(0.99, rate(hangfire_job_duration_seconds_bucket[5m]))",
+            "expr": "histogram_quantile(0.99, rate(qml_job_duration_seconds_bucket[5m]))",
             "legendFormat": "p99"
           }
         ]
@@ -837,7 +837,7 @@ let bulk_server = ServerConfig::new("bulk-worker")
 
 ```bash
 # Environment variables for secure configuration
-export DATABASE_URL="postgresql://hangfire_app:${POSTGRES_PASSWORD}@postgres:5432/hangfire?sslmode=require"
+export DATABASE_URL="postgresql://qml_app:${POSTGRES_PASSWORD}@postgres:5432/qml?sslmode=require"
 export REDIS_URL="rediss://user:${REDIS_PASSWORD}@redis:6380/1"  # SSL enabled
 ```
 
@@ -848,12 +848,12 @@ export REDIS_URL="rediss://user:${REDIS_PASSWORD}@redis:6380/1"  # SSL enabled
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: hangfire-network-policy
-  namespace: hangfire
+  name: qml-network-policy
+  namespace: qml
 spec:
   podSelector:
     matchLabels:
-      app: hangfire-workers
+      app: qml-workers
   policyTypes:
     - Ingress
     - Egress
@@ -861,7 +861,7 @@ spec:
     - from:
         - podSelector:
             matchLabels:
-              app: hangfire-dashboard
+              app: qml-dashboard
       ports:
         - protocol: TCP
           port: 8080
@@ -879,7 +879,7 @@ spec:
 
 ```bash
 # Use external secret management
-kubectl create secret generic hangfire-secrets \
+kubectl create secret generic qml-secrets \
   --from-literal=database-url="postgresql://..." \
   --from-literal=redis-password="..." \
   --dry-run=client -o yaml | kubectl apply -f -
@@ -894,19 +894,19 @@ kubectl create secret generic hangfire-secrets \
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
-  name: hangfire-queue-based-hpa
+  name: qml-queue-based-hpa
 spec:
   scaleTargetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: hangfire-workers
+    name: qml-workers
   minReplicas: 3
   maxReplicas: 50
   metrics:
     - type: External
       external:
         metric:
-          name: hangfire_queue_size
+          name: qml_queue_size
         target:
           type: Value
           value: "100" # Scale when queue > 100 jobs
@@ -919,17 +919,17 @@ spec:
 apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
-  name: hangfire-workers-vpa
+  name: qml-workers-vpa
 spec:
   targetRef:
     apiVersion: apps/v1
     kind: Deployment
-    name: hangfire-workers
+    name: qml-workers
   updatePolicy:
     updateMode: "Auto"
   resourcePolicy:
     containerPolicies:
-      - containerName: hangfire
+      - containerName: qml
         maxAllowed:
           memory: 2Gi
           cpu: 2000m
@@ -977,10 +977,10 @@ async fn load_test() -> Result<(), Box<dyn std::error::Error>> {
 
 ```bash
 # Check memory usage
-kubectl top pods -n hangfire
+kubectl top pods -n qml
 
 # Increase memory limits
-kubectl patch deployment hangfire-workers -p '{"spec":{"template":{"spec":{"containers":[{"name":"hangfire","resources":{"limits":{"memory":"2Gi"}}}]}}}}'
+kubectl patch deployment qml-workers -p '{"spec":{"template":{"spec":{"containers":[{"name":"qml","resources":{"limits":{"memory":"2Gi"}}}]}}}}'
 ```
 
 #### **Database Connection Pool Exhaustion**
@@ -996,26 +996,26 @@ let config = PostgresConfig::new()
 
 ```bash
 # Check queue sizes
-curl -s http://hangfire-dashboard/api/stats | jq '.queue_sizes'
+curl -s http://qml-dashboard/api/stats | jq '.queue_sizes'
 
 # Scale up workers
-kubectl scale deployment hangfire-workers --replicas=10
+kubectl scale deployment qml-workers --replicas=10
 ```
 
 ### **Monitoring Commands**
 
 ```bash
 # Check job processing metrics
-kubectl exec -it hangfire-workers-xxx -- curl localhost:8080/metrics | grep hangfire
+kubectl exec -it qml-workers-xxx -- curl localhost:8080/metrics | grep qml
 
 # View logs
-kubectl logs -f deployment/hangfire-workers -n hangfire
+kubectl logs -f deployment/qml-workers -n qml
 
 # Check database queries
-kubectl exec -it postgres-0 -- psql -U hangfire_app -d hangfire_production -c "
+kubectl exec -it postgres-0 -- psql -U qml_app -d qml_production -c "
   SELECT query, state, query_start
   FROM pg_stat_activity
-  WHERE datname = 'hangfire_production';
+  WHERE datname = 'qml_production';
 "
 ```
 
@@ -1025,7 +1025,7 @@ kubectl exec -it postgres-0 -- psql -U hangfire_app -d hangfire_production -c "
 -- Check slow queries
 SELECT query, mean_time, calls, total_time
 FROM pg_stat_statements
-WHERE query LIKE '%hangfire%'
+WHERE query LIKE '%qml%'
 ORDER BY mean_time DESC
 LIMIT 10;
 

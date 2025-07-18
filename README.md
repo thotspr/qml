@@ -13,11 +13,11 @@ A production-ready Rust implementation of QML background job processing, designe
 
 ### Development Credentials Warning
 
-⚠️ **IMPORTANT**: This library includes hardcoded development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
+⚠️ **IMPORTANT**: This library includes placeholder development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
 
-- `password` - Default PostgreSQL password
-- `development_secret_key_32_chars_` - Default secret key
-- `development_api_token` - Default API token
+- `dev_password_change_me` - Development PostgreSQL password placeholder
+- Development environment defaults for local testing only
+- Sample configuration values for documentation
 
 ### Production Deployment
 
@@ -362,7 +362,7 @@ GRANT ALL PRIVILEGES ON DATABASE qml TO qml_user;
 ```bash
 export DATABASE_URL="postgresql://qml_user:secure_password@localhost:5432/qml"
 export RUST_LOG=info
-export HANGFIRE_WORKERS=20
+export QML_WORKERS=20
 ```
 
 3. **Docker Compose**:
@@ -384,8 +384,8 @@ services:
   qml-app:
     build: .
     environment:
-      DATABASE_URL: postgresql://qml_user:secure_password@postgres:5432/hangfire
-      HANGFIRE_WORKERS: 20
+      DATABASE_URL: postgresql://qml_user:secure_password@postgres:5432/qml
+      QML_WORKERS: 20
     depends_on:
       - postgres
     ports:
@@ -422,7 +422,7 @@ spec:
         app: qml-workers
     spec:
       containers:
-        - name: hangfire
+        - name: qml
           image: your-registry/qml-app:latest
           env:
             - name: DATABASE_URL
@@ -430,7 +430,7 @@ spec:
                 secretKeyRef:
                   name: qml-secrets
                   key: database-url
-            - name: HANGFIRE_WORKERS
+            - name: QML_WORKERS
               value: "10"
           resources:
             requests:
@@ -491,8 +491,6 @@ We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for deta
 ### **Development Setup**
 
 ```bash
-git clone https://github.com/access-gate-tech/qml.git
-cd qml
 cargo build
 cargo test
 ```
@@ -512,13 +510,13 @@ cargo test --features postgres
 
 ## � **Security & Production Notes**
 
-**⚠️ IMPORTANT: Development Credentials Warning**
+⚠️ **IMPORTANT: Development Credentials Warning**
 
-This library includes hardcoded development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
+This library includes placeholder development credentials in `src/storage/settings.rs` for testing and examples. These are clearly marked as development-only and should **NEVER** be used in production:
 
-- `password` - Default PostgreSQL password
-- `development_secret_key_32_chars_` - Default secret key
-- `development_api_token` - Default API token
+- `dev_password_change_me` - Development PostgreSQL password placeholder
+- Development environment defaults for local testing only
+- Sample configuration values for documentation
 
 **Production Deployment:**
 1. Always set proper environment variables (see `.env.example`)

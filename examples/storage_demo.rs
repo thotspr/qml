@@ -1,6 +1,6 @@
 use qml::{
-    storage::{MemoryConfig, StorageConfig, StorageInstance},
     Job, JobState, Storage,
+    storage::{MemoryConfig, StorageConfig, StorageInstance},
 };
 
 #[cfg(feature = "redis")]
@@ -48,7 +48,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     {
         // Set environment variable for Redis URL
         std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
-        
+
         let redis_url =
             std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1:6379".to_string());
         let redis_password = std::env::var("REDIS_PASSWORD").ok();
@@ -101,15 +101,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("⚠️  Redis not available for advanced demo");
             }
         }
-        
+
         // Clean up environment variable
         std::env::remove_var("REDIS_URL");
     }
-    
+
     #[cfg(not(feature = "redis"))]
     {
         println!("⚠️  Redis feature not enabled, skipping Redis demos");
-        println!("   To enable Redis demos, run with: cargo run --example storage_demo --features redis");
+        println!(
+            "   To enable Redis demos, run with: cargo run --example storage_demo --features redis"
+        );
     }
 
     println!("\n✅ All storage demos completed successfully!");
@@ -215,7 +217,7 @@ async fn demo_config_serialization() -> Result<(), Box<dyn std::error::Error>> {
 
     // Create configurations
     let memory_config = StorageConfig::Memory(MemoryConfig::new().with_max_jobs(1000));
-    
+
     #[cfg(feature = "redis")]
     let redis_config = {
         // Set environment variable for Redis configuration demo
@@ -229,18 +231,18 @@ async fn demo_config_serialization() -> Result<(), Box<dyn std::error::Error>> {
 
     // Serialize to JSON
     let memory_json = serde_json::to_string_pretty(&memory_config)?;
-    
+
     #[cfg(feature = "redis")]
     let redis_json = serde_json::to_string_pretty(&redis_config)?;
 
     println!("Memory Config JSON:\n{}", memory_json);
-    
+
     #[cfg(feature = "redis")]
     println!("\nRedis Config JSON:\n{}", redis_json);
 
     // Deserialize back
     let _: StorageConfig = serde_json::from_str(&memory_json)?;
-    
+
     #[cfg(feature = "redis")]
     {
         let _: StorageConfig = serde_json::from_str(&redis_json)?;

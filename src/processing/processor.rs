@@ -8,7 +8,7 @@ use std::sync::Arc;
 use tracing::{debug, error, info, warn};
 
 use super::{
-    retry::RetryPolicy, worker::WorkerContext, WorkerConfig, WorkerRegistry, WorkerResult,
+    WorkerConfig, WorkerRegistry, WorkerResult, retry::RetryPolicy, worker::WorkerContext,
 };
 use crate::core::{Job, JobState};
 use crate::error::{QmlError, Result};

@@ -354,7 +354,7 @@
 //!
 //! See the [examples] for complete working implementations.
 //!
-//! [examples]: https://github.com/qml-io/qml/tree/main/examples
+//! [examples]: 
 
 pub mod core;
 pub mod dashboard;
