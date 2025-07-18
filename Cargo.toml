@@ -1,10 +1,10 @@
 [package]
 name = "qml"
-version = "0.1.0"
+version = "0.1.0-alpha"
 edition = "2024"
 authors = ["QML Contributors"]
 description = "A Rust implementation of QML background job processing"
-license = "MIT OR Apache-2.0"
+license = "MIT"
 repository = ""
 keywords = ["background", "jobs", "async", "queue", "worker"]
 categories = ["asynchronous", "web-programming"]

@@ -3,7 +3,7 @@
 A production-ready Rust implementation of QML background job processing, designed for high-performance, reliability, and scalability.
 
 [![Rust](https://img.shields.io/badge/rust-1.70+-blue.svg)](https://www.rust-lang.org)
-[![License](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#-license)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#-license)
 
 ## 🚀 **Status: Production Ready** ✅
 
