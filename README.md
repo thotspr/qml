@@ -468,27 +468,35 @@ qml is production-ready! The next phase focuses on:
 
 ## 🤝 **Contributing**
 
-We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) for details.
+We welcome contributions of all kinds! Whether you're fixing bugs, adding features, improving documentation, or enhancing tests, your help makes qml better for everyone.
 
-### **Development Setup**
+Please see our [Contributing Guide](CONTRIBUTING.md) for detailed information on:
+
+- 🚀 **Getting Started**: Development setup and environment configuration
+- � **Guidelines**: Code style, testing requirements, and best practices
+- � **Process**: Pull request workflow and commit message format
+- 🏗️ **Architecture**: Project structure and component overview
+- 🧪 **Testing**: Comprehensive testing guidelines and backend setup
+- 📚 **Documentation**: Writing and maintaining documentation
+- 🔒 **Security**: Security considerations and reporting guidelines
+
+### **Quick Start for Contributors**
 
 ```bash
+# Fork and clone the repository
+git clone https://github.com/yourusername/qml.git
+cd qml
+
+# Install dependencies and run tests
 cargo build
 cargo test
+
+# Start development with watch mode
+cargo install cargo-watch
+cargo watch -x test
 ```
 
-### **Testing with Backends**
-
-```bash
-# Start PostgreSQL
-docker run -d --name postgres -e POSTGRES_PASSWORD=test -p 5432:5432 postgres:15
-
-# Start Redis
-docker run -d --name redis -p 6379:6379 redis:7-alpine
-
-# Run all tests
-cargo test --features postgres
-```
+For questions or help getting started, please open an issue with the "question" label.
 
 ## 🔒 **Security & Production Notes**
 
