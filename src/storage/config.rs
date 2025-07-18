@@ -111,8 +111,12 @@ impl Default for RedisConfig {
             command_timeout: Duration::from_secs(5),
             key_prefix: "qml".to_string(),
             database: None,
-            username: None,
-            password: None,
+            username: std::env::var("REDIS_USERNAME")
+                .ok()
+                .filter(|s| !s.is_empty()),
+            password: std::env::var("REDIS_PASSWORD")
+                .ok()
+                .filter(|s| !s.is_empty()),
             tls: false,
             completed_job_ttl: None,
             failed_job_ttl: None,
