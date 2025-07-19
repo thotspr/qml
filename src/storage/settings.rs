@@ -31,19 +31,22 @@ pub struct Settings {
     pub auto_migrate: bool,
     /// Require SSL flag
     pub require_ssl: bool,
+    /// Migrations path for PostgreSQL
+    pub migrations_path: String,
 }
 
 impl Settings {
     /// Load settings from environment variables
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         #[cfg(feature = "postgres")]
-        let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
+        let database_url = Some(env::var("DATABASE_URL").expect("DATABASE_URL must be set"));
+        #[cfg(not(feature = "postgres"))]
+        let database_url = None;
+        
         #[cfg(feature = "redis")]
         let redis_url = Some(env::var("REDIS_URL").expect("REDIS_URL must be set"));
         #[cfg(not(feature = "redis"))]
         let redis_url = None;
-        #[cfg(not(feature = "postgres"))]
-        let database_url = None;
 
         let dashboard_port = env::var("QML_DASHBOARD_PORT")
             .unwrap_or_else(|_| "8080".to_string())
@@ -60,6 +63,8 @@ impl Settings {
             .parse::<u32>()
             .map_err(|e| format!("Invalid QML_MAX_CONNECTIONS: {}", e))?;
         let log_level = env::var("QML_LOG_LEVEL").unwrap_or_else(|_| "info".to_string());
+        let migrations_path = env::var("QML_MIGRATIONS_PATH")
+            .unwrap_or_else(|_| "./migrations".to_string());
 
         let auto_migrate = env::var("QML_AUTO_MIGRATE")
             .unwrap_or_else(|_| "true".to_string())
@@ -78,6 +83,7 @@ impl Settings {
             max_workers,
             max_connections,
             log_level,
+            migrations_path,
             // Optional settings with defaults
             auto_migrate,
             require_ssl,

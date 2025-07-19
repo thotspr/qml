@@ -79,3 +79,7 @@ path = "examples/processing_demo.rs"
 [[example]]
 name = "postgres_simple"
 path = "examples/postgres_simple.rs"
+
+[[example]]
+name = "custom_migrations"
+path = "examples/custom_migrations.rs"
