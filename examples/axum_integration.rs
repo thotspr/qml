@@ -204,13 +204,133 @@ async fn get_status(State(state): State<AppState>) -> Result<Json<StatusResponse
    axum = "0.8"
    tokio = { version = "1", features = ["full"] }
 
-✅ Basic Setup:
-   1. Add `storage: Arc<dyn Storage + Send + Sync>` to your AppState
-   2. Initialize: `let storage = StorageInstance::memory();`
-   3. Share state: `AppState { storage: Arc::new(storage) }`
-   4. No environment variables required!
+✅ Environment Variables (all optional - QML has sensible defaults!):
 
-✅ Typical Handler Pattern:
+   🗄️  Database Configuration:
+   DATABASE_URL="postgresql://user:password@localhost:5432/myapp"
+   REDIS_URL="redis://localhost:6379"
+   REDIS_USERNAME="myuser"          # Optional, for Redis ACL
+   REDIS_PASSWORD="mypassword"      # Optional, for Redis auth
+
+   ⚙️  QML-Specific Settings:
+   QML_DASHBOARD_PORT=8080          # Default: 8080
+   QML_DASHBOARD_HOST=0.0.0.0       # Default: 127.0.0.1
+   QML_MAX_WORKERS=20               # Default: 10
+   QML_MAX_CONNECTIONS=50           # Default: 20
+   QML_LOG_LEVEL=debug              # Default: info
+   QML_MIGRATIONS_PATH=./migrations # Default: ./migrations
+   QML_AUTO_MIGRATE=true            # Default: true
+   QML_REQUIRE_SSL=false            # Default: false
+
+✅ Axum Integration Patterns:
+
+   1️⃣ Environment-Based Configuration:
+   ```rust
+   use std::env;
+
+   #[tokio::main]
+   async fn main() -> Result<(), Box<dyn std::error::Error>> {
+       // Load environment variables (use .env file or system env)
+       dotenv::dotenv().ok(); // Optional: load from .env file
+
+       let storage = if let Ok(db_url) = env::var("DATABASE_URL") {
+           // Production: Use PostgreSQL
+           let config = PostgresConfig::default().with_database_url(db_url);
+           StorageInstance::postgres(config).await?
+       } else if let Ok(redis_url) = env::var("REDIS_URL") {
+           // Development: Use Redis
+           let config = RedisConfig::default().with_url(redis_url);
+           StorageInstance::redis(config).await?
+       } else {
+           // Local: Use memory (no setup required!)
+           StorageInstance::memory()
+       };
+
+       let app_state = AppState { storage: Arc::new(storage) };
+       // ... rest of your Axum setup
+   }
+   ```
+
+   2️⃣ Configuration Struct Pattern:
+   ```rust
+   #[derive(Clone)]
+   struct Config {
+       pub database_url: Option<String>,
+       pub redis_url: Option<String>,
+       pub port: u16,
+       pub workers: u32,
+   }
+
+   impl Config {
+       fn from_env() -> Self {
+           Self {
+               database_url: env::var("DATABASE_URL").ok(),
+               redis_url: env::var("REDIS_URL").ok(),
+               port: env::var("PORT").unwrap_or("3000".to_string()).parse().unwrap(),
+               workers: env::var("QML_MAX_WORKERS").unwrap_or("10".to_string()).parse().unwrap(),
+           }
+       }
+   }
+   ```
+
+   3️⃣ Docker-Friendly Setup:
+   ```dockerfile
+   # Dockerfile
+   ENV DATABASE_URL=postgresql://postgres:password@db:5432/myapp
+   ENV REDIS_URL=redis://redis:6379
+   ENV QML_MAX_WORKERS=20
+   ENV QML_LOG_LEVEL=info
+   ```
+
+✅ Production Deployment Examples:
+
+   🐳 Docker Compose:
+   ```yaml
+   version: '3.8'
+   services:
+     app:
+       build: .
+       environment:
+         - DATABASE_URL=postgresql://postgres:password@db:5432/myapp
+         - REDIS_URL=redis://redis:6379
+         - QML_MAX_WORKERS=20
+         - QML_DASHBOARD_PORT=8080
+       ports:
+         - "3000:3000"
+         - "8080:8080"  # QML dashboard
+
+     db:
+       image: postgres:15
+       environment:
+         POSTGRES_DB: myapp
+         POSTGRES_USER: postgres
+         POSTGRES_PASSWORD: password
+
+     redis:
+       image: redis:7-alpine
+   ```
+
+   ☁️  Railway/Render/Fly.io:
+   ```bash
+   # Set in your platform's environment variables
+   DATABASE_URL=postgresql://...     # Provided by platform
+   REDIS_URL=redis://...            # Provided by platform
+   QML_MAX_WORKERS=10               # Tune for your plan
+   QML_LOG_LEVEL=warn               # Reduce logging in prod
+   ```
+
+   🔧 Development .env file:
+   ```bash
+   # .env (add to .gitignore!)
+   DATABASE_URL=postgresql://postgres:password@localhost:5432/myapp_dev
+   REDIS_URL=redis://localhost:6379
+   QML_DASHBOARD_PORT=8080
+   QML_MAX_WORKERS=5
+   QML_LOG_LEVEL=debug
+   QML_AUTO_MIGRATE=true
+   ```
+
+✅ Runtime Configuration:
    ```rust
    async fn my_handler(State(state): State<AppState>) -> Result<impl IntoResponse, StatusCode> {
        let job = Job::new("process_data", vec!["data".to_string()]);
@@ -219,23 +339,19 @@ async fn get_status(State(state): State<AppState>) -> Result<Json<StatusResponse
    }
    ```
 
-✅ Production Configuration:
-   - Memory (dev): `StorageInstance::memory()`
-   - PostgreSQL: `StorageInstance::postgres(PostgresConfig::default().with_database_url(db_url))`
-   - Redis: `StorageInstance::redis(RedisConfig::default().with_url(redis_url))`
-   - All backends work without panics thanks to our configuration fixes!
-
 ✅ Error Handling:
    - Always handle storage errors gracefully
    - Use proper HTTP status codes
    - Log errors for debugging
    - Consider retries for transient failures
 
-✅ Monitoring:
+✅ Monitoring & Health Checks:
    - Use `/status` endpoint for health checks
    - Monitor job counts and processing rates
    - Set up alerts for failed jobs
    - Track job processing latency
+   - QML dashboard available at `QML_DASHBOARD_PORT`
 
-🎉 Your QML + Axum integration is now production-ready!
+🎉 Your QML + Axum integration works perfectly with any deployment strategy!
+   No environment variables are required - QML provides safe defaults for everything!
 */
