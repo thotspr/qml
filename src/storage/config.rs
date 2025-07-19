@@ -242,6 +242,8 @@ impl RedisConfig {
 pub struct PostgresConfig {
     /// PostgreSQL connection URL (postgresql://user:password@localhost/qml)
     pub database_url: String,
+    /// Migrations path
+    pub migrations_path: String,
     /// Maximum number of connections in the pool
     pub max_connections: u32,
     /// Minimum number of connections in the pool
