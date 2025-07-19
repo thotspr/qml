@@ -69,8 +69,8 @@ Dockerfile*
 .docker/
 .dockerignore
 
-# Database dumps and data
-*.sql
+# Database dumps and data (but NOT migration files!)
+# *.sql  # REMOVED: Migration files need to be tracked!
 db/*.sql
 db/*.dump
 *.db
@@ -81,13 +81,21 @@ db/*.dump
 *.redis
 *.pid
 
+# Database runtime/dump files to ignore
+*_dump.sql
+*_backup.sql
+database_dump_*.sql
+backup_*.sql
+temp_*.sql
+
 # Postgres/Redis runtime data
 postgres_data/
 redis_data/
 
-# Migrations (generated)
+# Migrations (temporary files only - migration .sql files are tracked!)
 migrations/*.log
 migrations/*.tmp
+migrations/*.bak
 
 # Node/npm (if dashboard uses JS)
 /node_modules/

@@ -41,62 +41,214 @@ impl PostgresStorage {
 
         // Run migrations if auto_migrate is enabled
         if storage.config.auto_migrate {
-            storage.migrate().await?;
+            storage.migrate_if_needed().await?;
         }
 
         Ok(storage)
     }
 
-    /// Run database migrations
-    /// 
-    /// This method runs SQL migrations from the configured migrations directory.
-    /// The migration path can be customized using `PostgresConfig::with_migrations_path()`.
-    /// 
+    /// Check if the schema and tables exist
+    ///
+    /// This method checks for the existence of the required schema and table
+    /// before attempting any operations. This is useful for detecting when
+    /// migrations need to be run.
+    pub async fn schema_exists(&self) -> Result<bool, StorageError> {
+        // Check if schema exists
+        let schema_query =
+            "SELECT EXISTS(SELECT 1 FROM information_schema.schemata WHERE schema_name = $1)";
+        let schema_exists = sqlx::query_scalar::<_, bool>(schema_query)
+            .bind(&self.config.schema_name)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| StorageError::OperationFailed {
+                operation: "schema_check".to_string(),
+                message: format!("Failed to check schema existence: {}", e),
+                source: Some(Box::new(e)),
+            })?;
+
+        if !schema_exists {
+            return Ok(false);
+        }
+
+        // Check if table exists
+        let table_query = "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_schema = $1 AND table_name = $2)";
+        let table_exists = sqlx::query_scalar::<_, bool>(table_query)
+            .bind(&self.config.schema_name)
+            .bind(&self.config.table_name)
+            .fetch_one(&self.pool)
+            .await
+            .map_err(|e| StorageError::OperationFailed {
+                operation: "table_check".to_string(),
+                message: format!("Failed to check table existence: {}", e),
+                source: Some(Box::new(e)),
+            })?;
+
+        Ok(table_exists)
+    }
+
+    /// Helper method to detect if a database error is schema-related
+    ///
+    /// This method analyzes database errors to determine if they're caused by
+    /// missing schema or tables, which indicates migrations need to be run.
+    fn is_schema_error(error: &sqlx::Error) -> bool {
+        match error {
+            sqlx::Error::Database(db_err) => {
+                let code = db_err.code().unwrap_or_default();
+                let message = db_err.message().to_lowercase();
+
+                // PostgreSQL error codes for missing schema/table
+                code == "42P01" || // undefined_table
+                code == "3F000" || // invalid_schema_name
+                message.contains("does not exist") ||
+                message.contains("relation") && message.contains("does not exist") ||
+                message.contains("schema") && message.contains("does not exist")
+            }
+            _ => false,
+        }
+    }
+
+    /// Enhanced error handling that can trigger automatic migration
+    ///
+    /// This method wraps database operations and can automatically trigger
+    /// migrations if schema-related errors are detected.
+    async fn handle_schema_error<T, F, Fut>(
+        &self,
+        operation: F,
+        operation_name: &str,
+    ) -> Result<T, StorageError>
+    where
+        F: Fn() -> Fut + Send,
+        Fut: std::future::Future<Output = Result<T, sqlx::Error>> + Send,
+    {
+        match operation().await {
+            Ok(result) => Ok(result),
+            Err(e) if Self::is_schema_error(&e) => {
+                tracing::warn!("Schema error detected during {}: {}", operation_name, e);
+
+                if self.config.auto_migrate {
+                    tracing::info!("Attempting automatic migration due to schema error...");
+                    self.migrate().await?;
+
+                    // Retry the operation once after migration
+                    operation()
+                        .await
+                        .map_err(|retry_err| StorageError::OperationFailed {
+                            operation: operation_name.to_string(),
+                            message: format!(
+                                "Operation failed even after migration: {}",
+                                retry_err
+                            ),
+                            source: Some(Box::new(retry_err)),
+                        })
+                } else {
+                    Err(StorageError::OperationFailed {
+                        operation: operation_name.to_string(),
+                        message: format!(
+                            "Schema error detected but auto_migrate is disabled. Please run migrations manually: {}",
+                            e
+                        ),
+                        source: Some(Box::new(e)),
+                    })
+                }
+            }
+            Err(e) => Err(StorageError::OperationFailed {
+                operation: operation_name.to_string(),
+                message: format!("Database operation failed: {}", e),
+                source: Some(Box::new(e)),
+            }),
+        }
+    }
+
+    /// Run QML PostgreSQL schema installation
+    ///
+    /// This method installs the complete QML PostgreSQL schema using the embedded
+    /// install.sql file. This approach provides a single, comprehensive schema
+    /// installation that includes all tables, indexes, functions, and triggers
+    /// needed for QML job processing.
+    ///
+    /// The schema installation is feature-gated and only available when the
+    /// 'postgres' feature is enabled in Cargo.toml.
+    ///
+    /// # Features Installed
+    /// - Complete job table with all columns and constraints
+    /// - Performance indexes for efficient job processing
+    /// - Distributed job locking functions
+    /// - Automatic timestamp triggers
+    /// - Job state enum types
+    /// - Comprehensive documentation
+    ///
     /// # Example
-    /// 
+    ///
     /// ```rust,no_run
     /// use qml::storage::{PostgresConfig, PostgresStorage};
-    /// 
+    ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     // Use custom migration path
     ///     let config = PostgresConfig::new()
     ///         .with_database_url("postgresql://user:pass@localhost/db")
-    ///         .with_migrations_path("./custom_migrations")
-    ///         .with_auto_migrate(true);
+    ///         .with_auto_migrate(false);  // Manual control for production
     ///     
     ///     let storage = PostgresStorage::new(config).await?;
     ///     
-    ///     // Manually run migrations if auto_migrate is disabled
-    ///     // storage.migrate().await?;
+    ///     // Install complete schema manually
+    ///     storage.migrate().await?;
     ///     
+    ///     println!("QML PostgreSQL schema installed successfully!");
     ///     Ok(())
     /// }
     /// ```
+    #[cfg(feature = "postgres")]
     pub async fn migrate(&self) -> Result<(), StorageError> {
-        // Use the configured migration path or default to "./migrations"
-        let migration_path = if self.config.migrations_path.is_empty() {
-            "./migrations"
-        } else {
-            &self.config.migrations_path
-        };
+        tracing::info!("Installing QML PostgreSQL schema from embedded install.sql...");
 
-        // Create migrator from the specified path
-        let migrator = sqlx::migrate::Migrator::new(std::path::Path::new(migration_path))
+        // Load the embedded install.sql file (compile-time inclusion)
+        let install_sql = include_str!("../../install.sql");
+        
+        // Execute the complete schema installation as a single transaction
+        sqlx::raw_sql(install_sql)
+            .execute(&self.pool)
             .await
             .map_err(|e| StorageError::MigrationError {
-                message: format!("Failed to create migrator from path '{}': {}", migration_path, e),
+                message: format!("QML schema installation failed: {}", e),
             })?;
 
-        // Run migrations
-        migrator
-            .run(&self.pool)
-            .await
-            .map_err(|e| StorageError::MigrationError {
-                message: format!("Migration failed: {}", e),
-            })?;
-
+        tracing::info!("QML PostgreSQL schema installation completed successfully");
+        tracing::info!("Schema includes: tables, indexes, functions, triggers, and documentation");
         Ok(())
+    }
+
+    /// Fallback when postgres feature is not enabled
+    #[cfg(not(feature = "postgres"))]
+    pub async fn migrate(&self) -> Result<(), StorageError> {
+        Err(StorageError::Configuration {
+            message: "PostgreSQL schema installation requires the 'postgres' feature. Enable it in Cargo.toml: features = [\"postgres\"]".to_string(),
+        })
+    }
+
+    /// Migrate with automatic schema detection
+    ///
+    /// This is a convenience method that combines schema detection and migration.
+    /// It will only run migrations if the schema doesn't exist or is incomplete.
+    pub async fn migrate_if_needed(&self) -> Result<bool, StorageError> {
+        match self.schema_exists().await {
+            Ok(true) => {
+                tracing::debug!("Schema exists, skipping migration");
+                Ok(false)
+            }
+            Ok(false) => {
+                tracing::info!("Schema not found, running migrations...");
+                self.migrate().await?;
+                Ok(true)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to check schema existence, attempting migration anyway: {}",
+                    e
+                );
+                self.migrate().await?;
+                Ok(true)
+            }
+        }
     }
 
     /// Get a reference to the connection pool

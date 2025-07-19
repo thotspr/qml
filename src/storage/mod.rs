@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::core::{Job, JobState};
 
 pub mod config;
+pub mod database_init;
 pub mod error;
 pub mod memory;
 #[cfg(feature = "postgres")]
@@ -20,6 +21,8 @@ pub use config::PostgresConfig;
 #[cfg(feature = "redis")]
 pub use config::RedisConfig;
 pub use config::{MemoryConfig, StorageConfig};
+#[cfg(feature = "postgres")]
+pub use database_init::{DatabaseInitializer, DatabaseInitError};
 pub use error::StorageError;
 pub use memory::MemoryStorage;
 #[cfg(feature = "postgres")]
