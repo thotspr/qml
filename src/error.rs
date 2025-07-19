@@ -46,6 +46,10 @@ pub enum QmlError {
     /// Timeout errors
     #[error("Operation timed out: {operation}")]
     TimeoutError { operation: String },
+
+    /// Database migration errors
+    #[error("Migration error: {message}")]
+    MigrationError { message: String },
 }
 
 impl From<serde_json::Error> for QmlError {

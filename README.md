@@ -65,7 +65,10 @@ qml = { version = "0.1.0", features = ["postgres"] }
 
 ### **Advanced Features**
 
-- **Database Migrations**: Automatic PostgreSQL schema management
+- **Automated Database Migrations**: Zero-config PostgreSQL schema management with intelligent detection
+- **Schema Detection**: Automated detection of missing schemas and tables with error recovery
+- **Zero-Config Setup**: Databases initialize automatically even when empty
+- **Migration Best Practices**: Production-ready patterns with manual control options
 - **Connection Pooling**: Configurable connection pools for all backends
 - **Comprehensive Config**: Fine-tuned settings for production deployment
 - **Error Handling**: Detailed error types with proper error propagation
@@ -220,6 +223,263 @@ fn setup_worker_registry() -> WorkerRegistry {
 }
 ```
 
+## 🗄️ **Automated Database Migration**
+
+QML provides comprehensive automated migration support for PostgreSQL with zero-configuration setup and production-ready patterns.
+
+### **Zero-Configuration Setup**
+
+```rust
+use qml::{PostgresConfig, PostgresStorage};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Just provide a database URL - migrations run automatically!
+    let storage = PostgresStorage::new(
+        PostgresConfig::new()
+            .with_database_url("postgresql://user:pass@localhost/db")
+            .with_auto_migrate(true)  // Default: enabled
+    ).await?;
+
+    println!("Database ready with schema!");
+    Ok(())
+}
+```
+
+### **Migration Strategies**
+
+#### **Development Pattern** (Recommended for local dev)
+
+```rust
+// Auto-migrate everything on startup
+let config = PostgresConfig::new()
+    .with_database_url(database_url)
+    .with_auto_migrate(true)        // Enabled by default
+    .with_migrations_path("./migrations");
+
+let storage = PostgresStorage::new(config).await?; // Migrations run automatically
+```
+
+#### **Production Pattern** (Recommended for production)
+
+```rust
+// Manual migration control for production safety
+let config = PostgresConfig::new()
+    .with_database_url(database_url)
+    .with_auto_migrate(false)       // Disable auto-migration
+    .with_migrations_path("./migrations");
+
+let storage = PostgresStorage::new(config).await?;
+
+// Run migrations explicitly when ready
+storage.migrate().await?;
+```
+
+#### **Testing Pattern** (Minimal resources)
+
+```rust
+// Fast setup for tests with automatic cleanup
+let config = PostgresConfig::new()
+    .with_database_url(test_database_url)
+    .with_auto_migrate(true)
+    .with_max_connections(2)        // Minimal resources
+    .with_min_connections(1);
+
+let storage = PostgresStorage::new(config).await?;
+```
+
+### **Smart Migration Detection**
+
+The library automatically detects when migrations are needed:
+
+```rust
+// Check if schema exists before operations
+if !storage.schema_exists().await? {
+    println!("Schema not found, migrations needed");
+    storage.migrate().await?;
+}
+
+// Only run migrations if actually needed
+let migration_needed = storage.migrate_if_needed().await?;
+if migration_needed {
+    println!("Migrations were applied");
+} else {
+    println!("Schema already up to date");
+}
+```
+
+### **Error Recovery & Health Checks**
+
+```rust
+use qml::{PostgresStorage, StorageError, PostgresConfig};
+
+async fn robust_initialization(database_url: String) -> Result<PostgresStorage, Box<dyn std::error::Error>> {
+    let config = PostgresConfig::new()
+        .with_database_url(database_url)
+        .with_auto_migrate(true);
+
+    match PostgresStorage::new(config).await {
+        Ok(storage) => {
+            // Verify schema after initialization
+            if storage.schema_exists().await? {
+                Ok(storage)
+            } else {
+                // Force migration if schema still missing
+                storage.migrate().await?;
+                Ok(storage)
+            }
+        }
+        Err(StorageError::MigrationError { message }) => {
+            eprintln!("Migration failed: {}", message);
+            Err("Database initialization failed".into())
+        }
+        Err(e) => Err(Box::new(e)),
+    }
+}
+```
+
+### **Migration Files Structure**
+
+QML now uses an **embedded schema approach** - no external migration files needed!
+
+The complete PostgreSQL schema is embedded directly in the binary as `install.sql` and only requires the `postgres` feature to be enabled:
+
+```rust
+// Schema installation happens automatically or manually
+let storage = PostgresStorage::new(
+    PostgresConfig::new()
+        .with_database_url(database_url)
+        .with_auto_migrate(true)  // Installs embedded schema automatically
+).await?;
+```
+
+#### **Embedded Schema Features**
+
+The embedded `install.sql` includes everything needed for production:
+
+- **Complete job table** with all columns, constraints, and documentation
+- **Performance indexes** for efficient job processing and querying
+- **Distributed job locking** functions for multi-worker environments
+- **Automatic triggers** for timestamp management
+- **Job state enums** for type safety
+- **Comprehensive comments** for all tables, columns, and functions
+
+#### **Key Advantages**
+
+- ✅ **No external files** to manage or deploy
+- ✅ **Always in sync** with code version
+- ✅ **Simplified deployments** - just enable postgres feature
+- ✅ **Feature-gated** - only compiles when needed
+- ✅ **Production-ready** with all optimizations included
+
+### **Configuration Options**
+
+#### **Environment Variables**
+
+```bash
+# Database configuration
+export DATABASE_URL="postgresql://user:pass@localhost:5432/qml"
+export QML_MAX_CONNECTIONS="20"
+export QML_MIN_CONNECTIONS="2"
+export QML_AUTO_MIGRATE="true"  # Enable embedded schema auto-installation
+```
+
+#### **Programmatic Configuration**
+
+```rust
+let config = PostgresConfig::new()
+    .with_database_url(database_url)
+    .with_auto_migrate(true)        // Enable embedded schema installation
+    .with_max_connections(20)
+    .with_min_connections(2)
+    .with_connect_timeout(Duration::from_secs(10))
+    .with_command_timeout(Duration::from_secs(30))
+    .with_schema_name("qml")
+    .with_table_name("qml_jobs");
+```
+
+### **Production Deployment Checklist**
+
+#### **Before Deployment**
+
+- [ ] Postgres feature is enabled in Cargo.toml: `features = ["postgres"]`
+- [ ] Database user has schema creation permissions
+- [ ] Connection limits are appropriate for load
+- [ ] Timeouts are configured for network conditions
+- [ ] Auto-migration setting matches environment (dev vs prod)
+
+#### **Manual Installation (Recommended for Production)**
+
+```rust
+// Deploy with auto_migrate=false for production safety
+let config = PostgresConfig::new()
+    .with_auto_migrate(false);
+
+// Install embedded schema manually during deployment
+let storage = PostgresStorage::new(config).await?;
+storage.migrate().await?;  // Installs complete embedded schema
+```
+
+#### **Health Checks**
+
+```rust
+async fn health_check(storage: &PostgresStorage) -> Result<(), Box<dyn std::error::Error>> {
+    // Check schema exists
+    if !storage.schema_exists().await? {
+        return Err("Schema missing".into());
+    }
+
+    // Test basic operation
+    storage.get_job_count("default").await?;
+    Ok(())
+}
+```
+
+### **Advanced Migration Patterns**
+
+#### **Conditional Migration**
+
+```rust
+// Only migrate if specific conditions are met
+let should_migrate = !storage.schema_exists().await? ||
+                    std::env::var("FORCE_MIGRATION").is_ok();
+
+if should_migrate {
+    storage.migrate().await?;
+}
+```
+
+#### **Custom Migration Paths**
+
+```rust
+// Different migration paths for different environments
+let migration_path = match std::env::var("ENVIRONMENT").as_deref() {
+    Ok("production") => "./migrations/production",
+    Ok("staging") => "./migrations/staging",
+    _ => "./migrations/development",
+};
+
+let config = PostgresConfig::new()
+    .with_migrations_path(migration_path);
+```
+
+### **Migration Monitoring & Logging**
+
+```rust
+use tracing::{info, warn, error};
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Enable detailed migration logging
+    tracing_subscriber::fmt::init();
+
+    let storage = PostgresStorage::new(config).await?;
+    // Migration logs will be automatically emitted
+
+    Ok(())
+}
+```
+
 ## 🎯 **Storage Backend Comparison**
 
 | Feature              | Memory      | Redis        | PostgreSQL |
@@ -318,9 +578,45 @@ cargo run --example processing_demo
 # PostgreSQL setup and operations
 cargo run --example postgres_simple
 
-# Custom migration paths configuration
+# Comprehensive automated migration demo with embedded schema
+cargo run --example automated_migration --features postgres
+
+# Embedded schema installation patterns
 cargo run --example custom_migrations --features postgres
 ```
+
+#### **Automated Migration Example**
+
+The `automated_migration.rs` example demonstrates the new embedded schema approach:
+
+```rust
+// Multiple migration strategies using embedded schema
+pub enum MigrationStrategy {
+    Development,    // Auto-install embedded schema
+    Production,     // Manual embedded schema control
+    Testing,        // Minimal resources with embedded schema
+}
+
+// DatabaseManager with embedded schema installation
+let database_manager = DatabaseManager::new(
+    database_url,
+    MigrationStrategy::Development
+).await?;
+
+// Schema installation and health checks
+database_manager.ensure_schema().await?;
+database_manager.health_check().await?;
+```
+
+The example includes:
+
+- **Embedded schema installation** - no external files needed
+- **Feature-gated approach** - only compiles with postgres feature
+- **Zero-config setup** for development
+- **Manual control** for production
+- **Health checks and validation**
+- **Comprehensive error handling**
+- **Performance optimizations included**
 
 ### **Dashboard URLs**
 
@@ -329,6 +625,50 @@ After running the dashboard example:
 - **Web UI**: <http://localhost:8080>
 - **REST API**: <http://localhost:8080/api/jobs>
 - **WebSocket**: ws://localhost:8080/ws
+
+## 🎯 **Migration Implementation Status**
+
+### **✅ Complete Automated Migration System**
+
+The QML library now includes comprehensive automated migration functionality:
+
+#### **Core Features Implemented**
+
+- **✅ Schema Detection**: Intelligent detection of missing schemas and tables
+- **✅ Auto-Migration**: Zero-config database setup with schema creation
+- **✅ Smart Migration Logic**: Only runs migrations when actually needed
+- **✅ Error Recovery**: Automatic retry on schema-related errors
+- **✅ Production Patterns**: Manual control options for production safety
+- **✅ Health Checks**: Post-migration validation and verification
+
+#### **Files Added/Enhanced**
+
+- **`migrations/20250719000001_initial_schema.sql`** - Complete QML schema with indexes and triggers
+- **`migrations/20250719000002_add_job_locking.sql`** - Advanced job locking for distributed processing
+- **`src/storage/postgres.rs`** - Enhanced with `schema_exists()`, `migrate_if_needed()`, error handling
+- **`examples/automated_migration.rs`** - Comprehensive migration patterns demo
+- **`src/error.rs`** - Added `MigrationError` variant for consistency
+
+#### **Migration Capabilities**
+
+```rust
+// Automatic schema detection
+storage.schema_exists().await?               // Check if schema exists
+storage.migrate_if_needed().await?           // Smart migration logic
+storage.migrate().await?                     // Force migration
+
+// Error handling
+PostgresStorage::new(config).await?          // Auto-migrate on init (if enabled)
+```
+
+#### **Production Ready Features**
+
+- **Environment-specific configurations** (development/production/testing)
+- **Retry logic** with configurable attempts and delays
+- **Connection pooling** with optimal settings per environment
+- **Comprehensive logging** with tracing integration
+- **Schema validation** and health checks
+- **Manual migration control** for production deployments
 
 ## 📋 **Production Deployment**
 
@@ -549,6 +889,31 @@ cargo watch -x test
 ````
 
 For questions or help getting started, please open an issue with the "question" label.
+
+## 📚 **Documentation**
+
+This README now contains all comprehensive documentation previously spread across multiple files:
+
+### **Consolidated Information**
+
+- **✅ Complete Migration Guide**: All automated migration patterns and best practices
+- **✅ Implementation Status**: Current feature status and capabilities
+- **✅ Production Deployment**: Enterprise-ready deployment patterns
+- **✅ Configuration Options**: Environment variables and programmatic config
+- **✅ Error Handling**: Comprehensive error recovery patterns
+- **✅ Health Checks**: Post-deployment validation and monitoring
+
+### **Migration Documentation Consolidation**
+
+This README replaces and consolidates:
+
+- `MIGRATION_BEST_PRACTICES.md` - All content integrated into "Automated Database Migration" section
+- `IMPLEMENTATION_SUMMARY.md` - Status information included in "Migration Implementation Status"
+- `CONSOLIDATION_SUMMARY.md` - Example information included in updated examples section
+
+All migration functionality, best practices, and implementation details are now available in this single comprehensive guide.
+
+## 👥 **Contributing**
 
 ## 🔒 **Security & Production Notes**
 

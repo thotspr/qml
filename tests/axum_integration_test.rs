@@ -13,7 +13,7 @@ async fn test_qml_integration_in_axum_style() {
     println!("🧪 Testing QML integration in Axum-style async context...");
 
     // 1. Test that configuration works without environment variables
-    let memory_config = StorageConfig::Memory(MemoryConfig::new().with_max_jobs(100));
+    let _memory_config = StorageConfig::Memory(MemoryConfig::new().with_max_jobs(100));
     println!("✅ Memory config created successfully");
 
     // 2. Test storage initialization (the way you'd do it in Axum)
