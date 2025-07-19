@@ -562,12 +562,8 @@ fn create_test_job(method: &str) -> Job {
 
 #[cfg(feature = "redis")]
 async fn create_redis_storage() -> Option<RedisStorage> {
-    // Set environment variable for the test
-    std::env::set_var("REDIS_URL", "redis://127.0.0.1:6379");
     let config = RedisConfig::default();
     let result = RedisStorage::with_config(config).await.ok();
-    // Clean up environment variable
-    std::env::remove_var("REDIS_URL");
     result
 }
 

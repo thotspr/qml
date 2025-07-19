@@ -7,25 +7,36 @@
 //! - Retrieving jobs and statistics
 
 #[cfg(feature = "postgres")]
-use qml::{Job, JobState, Storage};
+use qml_rs::{Job, JobState, Storage};
 
 #[cfg(feature = "postgres")]
-use qml::storage::{PostgresConfig, PostgresStorage, settings::Settings};
+use qml_rs::storage::{PostgresConfig, PostgresStorage};
 
 #[cfg(feature = "postgres")]
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("🚀 Starting Simple PostgreSQL Storage Demo");
 
-    // Load settings from environment variables
-    let settings = Settings::from_env_with_defaults();
-    println!("📝 Loaded settings from environment");
+    // Configure PostgreSQL connection with our improved defaults
+    let config = PostgresConfig::new() // Now uses sensible defaults without requiring env vars
+        .with_max_connections(10)
+        .with_auto_migrate(true);
 
-    // Configure PostgreSQL connection using settings
-    let config = PostgresConfig::new()
-        .with_database_url(&settings.database_url)
-        .with_max_connections(settings.max_connections)
-        .with_auto_migrate(settings.auto_migrate);
+    // If DATABASE_URL is set, use it; otherwise use the default
+    let config = if let Ok(db_url) = std::env::var("DATABASE_URL") {
+        config.with_database_url(db_url)
+    } else {
+        println!(
+            "ℹ️  DATABASE_URL not set, using default: {}",
+            config.database_url
+        );
+        config
+    };
+
+    println!(
+        "📝 Using PostgreSQL config with URL: {}",
+        config.database_url
+    );
 
     // Create storage instance
     println!("🔗 Connecting to PostgreSQL...");
