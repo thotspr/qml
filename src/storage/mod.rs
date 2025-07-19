@@ -64,7 +64,7 @@ pub use redis::RedisStorage;
 ///
 /// ### Basic Storage Operations
 /// ```rust
-/// use qml::{MemoryStorage, Job, Storage};
+/// use qml_rs::{MemoryStorage, Job, Storage};
 ///
 /// # tokio_test::block_on(async {
 /// let storage = MemoryStorage::new();
@@ -79,7 +79,7 @@ pub use redis::RedisStorage;
 ///
 /// // Update job state
 /// let mut updated_job = retrieved;
-/// updated_job.set_state(qml::JobState::processing("worker-1", "server-1")).unwrap();
+/// updated_job.set_state(qml_rs::JobState::processing("worker-1", "server-1")).unwrap();
 /// storage.update(&updated_job).await.unwrap();
 ///
 /// // Delete the job
@@ -90,7 +90,7 @@ pub use redis::RedisStorage;
 ///
 /// ### Atomic Job Processing
 /// ```rust
-/// use qml::{MemoryStorage, Job, Storage};
+/// use qml_rs::{MemoryStorage, Job, Storage};
 ///
 /// # tokio_test::block_on(async {
 /// let storage = MemoryStorage::new();
@@ -115,7 +115,7 @@ pub use redis::RedisStorage;
 ///
 /// ### Storage Backend Selection
 /// ```rust
-/// use qml::storage::{StorageInstance, StorageConfig, MemoryConfig};
+/// use qml_rs::storage::{StorageInstance, StorageConfig, MemoryConfig};
 ///
 /// # tokio_test::block_on(async {
 /// // Memory storage for development
@@ -124,7 +124,7 @@ pub use redis::RedisStorage;
 /// // Redis storage for production
 /// # #[cfg(feature = "redis")]
 /// # {
-/// use qml::storage::RedisConfig;
+/// use qml_rs::storage::RedisConfig;
 /// let redis_config = RedisConfig::new().with_url("redis://localhost:6379");
 /// match StorageInstance::redis(redis_config).await {
 ///     Ok(redis_storage) => println!("Redis storage ready"),
@@ -135,7 +135,7 @@ pub use redis::RedisStorage;
 /// // PostgreSQL storage for enterprise
 /// # #[cfg(feature = "postgres")]
 /// # {
-/// use qml::storage::PostgresConfig;
+/// use qml_rs::storage::PostgresConfig;
 /// let pg_config = PostgresConfig::new()
 ///     .with_database_url("postgresql://localhost:5432/qml")
 ///     .with_auto_migrate(true);
@@ -149,7 +149,7 @@ pub use redis::RedisStorage;
 ///
 /// ### Job Filtering and Statistics
 /// ```rust
-/// use qml::{MemoryStorage, Job, JobState, Storage};
+/// use qml_rs::{MemoryStorage, Job, JobState, Storage};
 ///
 /// # tokio_test::block_on(async {
 /// let storage = MemoryStorage::new();
@@ -198,7 +198,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -232,7 +232,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -265,7 +265,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, JobState, Storage};
+    /// use qml_rs::{MemoryStorage, Job, JobState, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -299,7 +299,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -334,7 +334,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, JobState, Storage};
+    /// use qml_rs::{MemoryStorage, Job, JobState, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -376,7 +376,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust,ignore
-    /// use qml::{MemoryStorage, Job, JobState, Storage};
+    /// use qml_rs::{MemoryStorage, Job, JobState, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -415,7 +415,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -461,7 +461,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -519,7 +519,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -565,7 +565,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -605,7 +605,7 @@ pub trait Storage: Send + Sync {
     ///
     /// ## Examples
     /// ```rust
-    /// use qml::{MemoryStorage, Job, Storage};
+    /// use qml_rs::{MemoryStorage, Job, Storage};
     ///
     /// # tokio_test::block_on(async {
     /// let storage = MemoryStorage::new();
@@ -659,7 +659,7 @@ impl StorageInstance {
     /// # Examples
     ///
     /// ```rust
-    /// use qml::storage::{StorageInstance, StorageConfig, MemoryConfig};
+    /// use qml_rs::storage::{StorageInstance, StorageConfig, MemoryConfig};
     ///
     /// # tokio_test::block_on(async {
     /// let config = StorageConfig::Memory(MemoryConfig::default());
@@ -689,7 +689,7 @@ impl StorageInstance {
     /// # Examples
     ///
     /// ```rust
-    /// use qml::storage::StorageInstance;
+    /// use qml_rs::storage::StorageInstance;
     ///
     /// let storage = StorageInstance::memory();
     /// ```
@@ -705,7 +705,7 @@ impl StorageInstance {
     /// # Examples
     ///
     /// ```rust
-    /// use qml::storage::{StorageInstance, MemoryConfig};
+    /// use qml_rs::storage::{StorageInstance, MemoryConfig};
     ///
     /// let config = MemoryConfig::new().with_max_jobs(1000);
     /// let storage = StorageInstance::memory_with_config(config);
@@ -726,7 +726,7 @@ impl StorageInstance {
     /// # Examples
     ///
     /// ```rust
-    /// use qml::storage::{StorageInstance, RedisConfig};
+    /// use qml_rs::storage::{StorageInstance, RedisConfig};
     ///
     /// # tokio_test::block_on(async {
     /// let config = RedisConfig::new().with_url("redis://localhost:6379");
@@ -754,7 +754,7 @@ impl StorageInstance {
     /// # Examples
     ///
     /// ```rust
-    /// use qml::storage::{StorageInstance, PostgresConfig};
+    /// use qml_rs::storage::{StorageInstance, PostgresConfig};
     ///
     /// # tokio_test::block_on(async {
     /// let config = PostgresConfig::new().with_database_url("postgresql://postgres:password@localhost:5432/qml");

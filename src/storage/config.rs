@@ -270,6 +270,7 @@ impl Default for PostgresConfig {
         Self {
             database_url: std::env::var("DATABASE_URL")
                 .expect("DATABASE_URL environment variable must be set"),
+            migrations_path: "./migrations".to_string(),
             max_connections: 20,
             min_connections: 1,
             connect_timeout: Duration::from_secs(30),
@@ -293,6 +294,12 @@ impl PostgresConfig {
     /// Set the database URL
     pub fn with_database_url<S: Into<String>>(mut self, url: S) -> Self {
         self.database_url = url.into();
+        self
+    }
+
+    /// Set the migrations path
+    pub fn with_migrations_path<S: Into<String>>(mut self, path: S) -> Self {
+        self.migrations_path = path.into();
         self
     }
 

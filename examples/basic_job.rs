@@ -12,7 +12,7 @@
 //! ```
 
 use chrono::{Duration, Utc};
-use qml::{Job, JobState, QmlError};
+use qml_rs::{Job, JobState, QmlError};
 
 fn main() -> Result<(), QmlError> {
     println!("🚀 QML Rust - Basic Job Example");

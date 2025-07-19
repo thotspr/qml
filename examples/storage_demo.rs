@@ -1,10 +1,10 @@
-use qml::{
+use qml_rs::{
     Job, JobState, Storage,
     storage::{MemoryConfig, StorageConfig, StorageInstance},
 };
 
 #[cfg(feature = "redis")]
-use qml::storage::RedisConfig;
+use qml_rs::storage::RedisConfig;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

@@ -1,4 +1,4 @@
-//! # qml
+//! # qml-rs
 //!
 //! A production-ready Rust implementation of background job processing.
 //!
@@ -19,7 +19,7 @@
 //!
 //! ### Memory Storage (Development/Testing)
 //! ```rust
-//! use qml::{MemoryStorage, Job, Storage};
+//! use qml_rs::{MemoryStorage, Job, Storage};
 //! use std::sync::Arc;
 //!
 //! # tokio_test::block_on(async {
@@ -33,7 +33,7 @@
 //! ```rust,ignore
 //! #[cfg(feature = "redis")]
 //! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     use qml::storage::{RedisConfig, StorageInstance};
+//!     use qml_rs::storage::{RedisConfig, StorageInstance};
 //!     use std::time::Duration;
 //!     let config = RedisConfig::new()
 //!         .with_url("redis://localhost:6379")
@@ -49,7 +49,7 @@
 //! ```rust,ignore
 //! #[cfg(feature = "postgres")]
 //! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     use qml::storage::{PostgresConfig, StorageInstance};
+//!     use qml_rs::storage::{PostgresConfig, StorageInstance};
 //!     use std::sync::Arc;
 //!     let config = PostgresConfig::new()
 //!         .with_database_url("postgresql://user:pass@localhost:5432/qml")
@@ -65,7 +65,7 @@
 //!
 //! ### Basic Worker Implementation
 //! ```rust
-//! use qml::{Worker, Job, WorkerContext, WorkerResult, QmlError};
+//! use qml_rs::{Worker, Job, WorkerContext, WorkerResult, QmlError};
 //! use async_trait::async_trait;
 //!
 //! struct EmailWorker;
@@ -87,7 +87,7 @@
 //!
 //! ### Complete Job Server Setup
 //! ```rust
-//! use qml::{
+//! use qml_rs::{
 //!     BackgroundJobServer, MemoryStorage, ServerConfig,
 //!     WorkerRegistry, Job
 //! };
@@ -115,7 +115,7 @@
 //!
 //! ### Real-time Web Dashboard
 //! ```rust
-//! use qml::{DashboardServer, MemoryStorage};
+//! use qml_rs::{DashboardServer, MemoryStorage};
 //! use std::sync::Arc;
 //!
 //! # async fn example() -> Result<(), Box<dyn std::error::Error>> {
@@ -143,7 +143,7 @@
 //! - **Memory**: Mutex-based locking with automatic cleanup
 //!
 //! ```rust
-//! use qml::{Storage, MemoryStorage};
+//! use qml_rs::{Storage, MemoryStorage};
 //!
 //! # tokio_test::block_on(async {
 //! let storage = MemoryStorage::new();
@@ -171,7 +171,7 @@
 //!
 //! ### State Management Example
 //! ```rust
-//! use qml::{Job, JobState};
+//! use qml_rs::{Job, JobState};
 //!
 //! let mut job = Job::new("process_payment", vec!["order_123".to_string()]);
 //!
@@ -191,9 +191,9 @@
 //! ```rust,ignore
 //! #[cfg(feature = "postgres")]
 //! async fn example() -> Result<(), Box<dyn std::error::Error>> {
-//!     use qml::storage::{PostgresConfig, StorageInstance};
+//!     use qml_rs::storage::{PostgresConfig, StorageInstance};
 //!     use std::sync::Arc;
-//!     use qml::{BackgroundJobServer, DashboardServer, ServerConfig, WorkerRegistry};
+//!     use qml_rs::{BackgroundJobServer, DashboardServer, ServerConfig, WorkerRegistry};
 //!     let storage_config = PostgresConfig::new()
 //!         .with_database_url(std::env::var("DATABASE_URL")?)
 //!         .with_auto_migrate(true)
@@ -223,7 +223,7 @@
 //!
 //! ### Server Configuration
 //! ```rust
-//! use qml::ServerConfig;
+//! use qml_rs::ServerConfig;
 //! use chrono::Duration;
 //!
 //! let config = ServerConfig::new("production-server")
@@ -238,7 +238,7 @@
 //! ### PostgreSQL Configuration
 //! ```rust,ignore
 //! #[cfg(feature = "postgres")]
-//! use qml::storage::PostgresConfig;
+//! use qml_rs::storage::PostgresConfig;
 //! use std::time::Duration;
 //!
 //! let config = PostgresConfig::new()
@@ -253,7 +253,7 @@
 //!
 //! ### Unit Testing with Memory Storage
 //! ```rust
-//! use qml::{MemoryStorage, Job, Storage};
+//! use qml_rs::{MemoryStorage, Job, Storage};
 //!
 //! #[tokio::test]
 //! async fn test_job_processing() {
@@ -269,7 +269,7 @@
 //!
 //! ### Stress Testing
 //! ```rust
-//! use qml::{MemoryStorage, Job, Storage};
+//! use qml_rs::{MemoryStorage, Job, Storage};
 //! use futures::future::join_all;
 //!
 //! #[tokio::test]
@@ -297,7 +297,7 @@
 //! Comprehensive error types for robust error handling:
 //!
 //! ```rust
-//! use qml::{QmlError, Result};
+//! use qml_rs::{QmlError, Result};
 //!
 //! fn handle_job_error(result: Result<()>) {
 //!     match result {
@@ -354,7 +354,7 @@
 //!
 //! See the [examples] for complete working implementations.
 //!
-//! [examples]: 
+//! [examples]:
 
 pub mod core;
 pub mod dashboard;

@@ -1,7 +1,7 @@
 //! Unit tests for JobState functionality.
 
 use chrono::{Duration, Utc};
-use qml::JobState;
+use qml_rs::JobState;
 
 #[test]
 fn test_job_state_names() {

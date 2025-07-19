@@ -14,7 +14,7 @@
 
 use async_trait::async_trait;
 use chrono::{Duration, Utc};
-use qml::{
+use qml_rs::{
     BackgroundJobServer, Job, JobScheduler, RetryPolicy, RetryStrategy, ServerConfig, Storage,
     StorageInstance, Worker, WorkerContext, WorkerRegistry, WorkerResult,
 };
@@ -45,7 +45,7 @@ impl EmailWorker {
 
 #[async_trait]
 impl Worker for EmailWorker {
-    async fn execute(&self, job: &Job, context: &WorkerContext) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, context: &WorkerContext) -> qml_rs::Result<WorkerResult> {
         let email = &job.arguments[0];
         let _message = &job.arguments[1];
 
@@ -96,7 +96,7 @@ impl PaymentWorker {
 
 #[async_trait]
 impl Worker for PaymentWorker {
-    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml_rs::Result<WorkerResult> {
         let order_id = &job.arguments[0];
         let amount = &job.arguments[1];
 
@@ -132,7 +132,7 @@ struct ReportWorker;
 
 #[async_trait]
 impl Worker for ReportWorker {
-    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml::Result<WorkerResult> {
+    async fn execute(&self, job: &Job, _context: &WorkerContext) -> qml_rs::Result<WorkerResult> {
         let report_type = &job.arguments[0];
         let period = &job.arguments[1];
 
@@ -279,11 +279,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Job Processing Results:");
     for (state, count) in &job_counts {
         let state_name = match state {
-            qml::JobState::Succeeded { .. } => "✅ Succeeded",
-            qml::JobState::Failed { .. } => "❌ Failed",
-            qml::JobState::Processing { .. } => "🔄 Processing",
-            qml::JobState::AwaitingRetry { .. } => "⏳ Awaiting Retry",
-            qml::JobState::Enqueued { .. } => "📥 Enqueued",
+            qml_rs::JobState::Succeeded { .. } => "✅ Succeeded",
+            qml_rs::JobState::Failed { .. } => "❌ Failed",
+            qml_rs::JobState::Processing { .. } => "🔄 Processing",
+            qml_rs::JobState::AwaitingRetry { .. } => "⏳ Awaiting Retry",
+            qml_rs::JobState::Enqueued { .. } => "📥 Enqueued",
             _ => "📝 Other",
         };
         println!("   {} {}", state_name, count);
@@ -358,12 +358,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("\n📊 Final Job Counts:");
     for (state, count) in &final_counts {
         let state_name = match state {
-            qml::JobState::Succeeded { .. } => "✅ Succeeded",
-            qml::JobState::Failed { .. } => "❌ Failed",
-            qml::JobState::Scheduled { .. } => "📅 Scheduled",
-            qml::JobState::Processing { .. } => "🔄 Processing",
-            qml::JobState::AwaitingRetry { .. } => "⏳ Awaiting Retry",
-            qml::JobState::Enqueued { .. } => "📥 Enqueued",
+            qml_rs::JobState::Succeeded { .. } => "✅ Succeeded",
+            qml_rs::JobState::Failed { .. } => "❌ Failed",
+            qml_rs::JobState::Scheduled { .. } => "📅 Scheduled",
+            qml_rs::JobState::Processing { .. } => "🔄 Processing",
+            qml_rs::JobState::AwaitingRetry { .. } => "⏳ Awaiting Retry",
+            qml_rs::JobState::Enqueued { .. } => "📥 Enqueued",
             _ => "📝 Other",
         };
         println!("   {} {}", state_name, count);
@@ -393,10 +393,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("📋 Job execution analysis:");
     for job in all_jobs {
         let status = match &job.state {
-            qml::JobState::Succeeded { total_duration, .. } => {
+            qml_rs::JobState::Succeeded { total_duration, .. } => {
                 format!("✅ Succeeded in {}ms", total_duration)
             }
-            qml::JobState::Failed {
+            qml_rs::JobState::Failed {
                 exception,
                 retry_count,
                 ..
@@ -407,7 +407,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     exception
                 )
             }
-            qml::JobState::AwaitingRetry {
+            qml_rs::JobState::AwaitingRetry {
                 retry_count,
                 last_exception,
                 ..
