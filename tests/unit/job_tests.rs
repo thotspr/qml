@@ -1,7 +1,7 @@
 //! Unit tests for Job functionality.
 
 use chrono::Utc;
-use qml::{Job, JobState, QmlError};
+use qml_rs::{Job, JobState, QmlError};
 
 #[test]
 fn test_job_creation() {

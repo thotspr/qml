@@ -17,7 +17,7 @@
 //!
 //! ### Basic Job Creation
 //! ```rust
-//! use qml::Job;
+//! use qml_rs::Job;
 //!
 //! // Simple job with method and arguments
 //! let job = Job::new("send_email", vec!["user@example.com".to_string()]);
@@ -34,7 +34,7 @@
 //!
 //! ### Job Serialization
 //! ```rust
-//! use qml::Job;
+//! use qml_rs::Job;
 //!
 //! let job = Job::new("process_data", vec!["file.csv".to_string()]);
 //!
@@ -49,7 +49,7 @@
 //!
 //! ### State Management
 //! ```rust
-//! use qml::{Job, JobState};
+//! use qml_rs::{Job, JobState};
 //!
 //! let mut job = Job::new("generate_report", vec!["Q4".to_string()]);
 //!
@@ -62,7 +62,7 @@
 //!
 //! ### Metadata and Configuration
 //! ```rust
-//! use qml::Job;
+//! use qml_rs::Job;
 //!
 //! let mut job = Job::new("backup_database", vec!["production".to_string()]);
 //!
@@ -110,7 +110,7 @@ use uuid::Uuid;
 ///
 /// ### Creating Jobs
 /// ```rust
-/// use qml::Job;
+/// use qml_rs::Job;
 ///
 /// // Basic job
 /// let job = Job::new("process_order", vec!["order_123".to_string()]);
@@ -127,7 +127,7 @@ use uuid::Uuid;
 ///
 /// ### Working with Job Data
 /// ```rust
-/// use qml::Job;
+/// use qml_rs::Job;
 ///
 /// let mut job = Job::new("analyze_data", vec!["dataset.csv".to_string()]);
 ///
@@ -166,7 +166,7 @@ pub struct Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let job = Job::new("process_user", vec![
     ///     "123".to_string(),                    // user_id
@@ -198,7 +198,7 @@ pub struct Job {
     ///
     /// ## Example Queue Organization
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let critical_job = Job::with_config("send_alert", vec![], "critical", 10, 1);
     /// let normal_job = Job::with_config("send_email", vec![], "normal", 5, 3);
@@ -233,7 +233,7 @@ pub struct Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut job = Job::new("process_order", vec!["order_123".to_string()]);
     /// job.add_metadata("customer_id", "456");
@@ -255,7 +255,7 @@ pub struct Job {
     ///
     /// ## Example Timeouts
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut quick_job = Job::new("send_sms", vec![]);
     /// quick_job.set_timeout(30); // 30 seconds
@@ -284,7 +284,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// // Simple job
     /// let job = Job::new("send_email", vec!["user@example.com".to_string()]);
@@ -333,7 +333,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// // High-priority payment job with retries
     /// let job = Job::with_config(
@@ -385,7 +385,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let job = Job::new("process_data", vec!["file.csv".to_string()]);
     /// let json = job.serialize().unwrap();
@@ -413,7 +413,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// // Serialize a job
     /// let original = Job::new("test_method", vec!["arg1".to_string()]);
@@ -453,7 +453,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::{Job, JobState};
+    /// use qml_rs::{Job, JobState};
     ///
     /// let mut job = Job::new("test_job", vec![]);
     ///
@@ -490,7 +490,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut job = Job::new("process_user", vec!["123".to_string()]);
     ///
@@ -515,7 +515,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut email_job = Job::new("send_welcome_email", vec![]);
     /// email_job.set_type("notification");
@@ -540,7 +540,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut quick_job = Job::new("send_sms", vec![]);
     /// quick_job.set_timeout(30); // 30 seconds max
@@ -565,7 +565,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     /// use std::thread;
     /// use std::time::Duration;
     ///
@@ -594,7 +594,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let mut job = Job::new("long_running_task", vec![]);
     /// job.set_timeout(5); // 5 second timeout
@@ -624,7 +624,7 @@ impl Job {
     ///
     /// ## Example
     /// ```rust
-    /// use qml::Job;
+    /// use qml_rs::Job;
     ///
     /// let original = Job::new("process_data", vec!["file.csv".to_string()]);
     /// let copy = original.clone_with_new_id();

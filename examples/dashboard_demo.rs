@@ -3,7 +3,7 @@ use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{error, info};
 
-use qml::{
+use qml_rs::{
     DashboardConfig,
     // Dashboard
     DashboardServer,

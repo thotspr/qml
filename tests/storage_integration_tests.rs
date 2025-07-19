@@ -1,11 +1,11 @@
 use chrono::{Duration, Utc};
-use qml::{
+use qml_rs::{
     Job, JobState, Storage,
     storage::{MemoryConfig, StorageConfig, StorageInstance},
 };
 
 #[cfg(feature = "redis")]
-use qml::storage::RedisConfig;
+use qml_rs::storage::RedisConfig;
 
 /// Test the storage factory pattern with different configurations
 #[tokio::test]
@@ -296,4 +296,4 @@ async fn test_storage_pagination() {
 }
 
 // Re-export MemoryStorage for the concurrent test
-use qml::MemoryStorage;
+use qml_rs::MemoryStorage;
