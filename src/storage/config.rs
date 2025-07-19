@@ -293,6 +293,25 @@ impl PostgresConfig {
     pub fn new() -> Self {
         Self::default()
     }
+
+    /// Create a new PostgreSQL config without reading environment variables
+    pub fn with_defaults() -> Self {
+        Self {
+            database_url: String::new(),  // Empty, must be set with with_database_url()
+            migrations_path: "./migrations".to_string(),
+            max_connections: 20,
+            min_connections: 1,
+            connect_timeout: Duration::from_secs(30),
+            command_timeout: Duration::from_secs(30),
+            table_name: "qml_jobs".to_string(),
+            schema_name: "public".to_string(),
+            auto_migrate: true,
+            idle_timeout: Duration::from_secs(600),
+            max_lifetime: Some(Duration::from_secs(1800)),
+            require_ssl: false,
+        }
+    }
+
     /// Set the database URL
     pub fn with_database_url<S: Into<String>>(mut self, url: S) -> Self {
         self.database_url = url.into();

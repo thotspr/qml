@@ -317,6 +317,9 @@ cargo run --example processing_demo
 
 # PostgreSQL setup and operations
 cargo run --example postgres_simple
+
+# Custom migration paths configuration
+cargo run --example custom_migrations --features postgres
 ```
 
 ### **Dashboard URLs**
@@ -457,6 +460,55 @@ let redis_config = RedisConfig::new()
     .with_completed_job_ttl(Duration::from_secs(86400)); // 24h
 ```
 
+### **Custom Migration Paths**
+
+By default, QML looks for database migration files in `./migrations`. You can customize this:
+
+#### **Direct Configuration**
+
+```rust
+let config = PostgresConfig::with_defaults()
+    .with_database_url("postgresql://qml_user:secure_password@localhost:5432/qml")
+    .with_migrations_path("./custom_migrations")  // Custom path
+    .with_auto_migrate(true);
+```
+
+#### **Environment Variables**
+
+```bash
+export QML_MIGRATIONS_PATH="./custom_migrations"
+export DATABASE_URL="postgresql://qml_user:secure_password@localhost:5432/qml"
+```
+
+```rust
+let settings = Settings::from_env()?;
+let config = PostgresConfig::with_defaults()
+    .with_database_url(settings.database_url.unwrap())
+    .with_migrations_path(&settings.migrations_path)
+    .with_auto_migrate(settings.auto_migrate);
+```
+
+#### **Manual Migration Control**
+
+```rust
+let config = PostgresConfig::with_defaults()
+    .with_migrations_path("./custom_migrations")
+    .with_auto_migrate(false);  // Disable auto-migration
+
+let storage = PostgresStorage::new(config).await?;
+storage.migrate().await?;  // Run manually when needed
+```
+
+| Environment Variable  | Default        | Description                             |
+| --------------------- | -------------- | --------------------------------------- |
+| `QML_MIGRATIONS_PATH` | `./migrations` | Path to migration files directory       |
+| `QML_AUTO_MIGRATE`    | `true`         | Whether to run migrations automatically |
+
+> **Example**: See `examples/custom_migrations.rs` for a complete demo.
+> Run with: `cargo run --example custom_migrations --features postgres`
+
+````
+
 ## 🚀 **What's Next?**
 
 qml is production-ready! The next phase focuses on:
@@ -494,7 +546,7 @@ cargo test
 # Start development with watch mode
 cargo install cargo-watch
 cargo watch -x test
-```
+````
 
 For questions or help getting started, please open an issue with the "question" label.
 

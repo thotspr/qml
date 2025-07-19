@@ -48,11 +48,48 @@ impl PostgresStorage {
     }
 
     /// Run database migrations
+    /// 
+    /// This method runs SQL migrations from the configured migrations directory.
+    /// The migration path can be customized using `PostgresConfig::with_migrations_path()`.
+    /// 
+    /// # Example
+    /// 
+    /// ```rust,no_run
+    /// use qml::storage::{PostgresConfig, PostgresStorage};
+    /// 
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    ///     // Use custom migration path
+    ///     let config = PostgresConfig::new()
+    ///         .with_database_url("postgresql://user:pass@localhost/db")
+    ///         .with_migrations_path("./custom_migrations")
+    ///         .with_auto_migrate(true);
+    ///     
+    ///     let storage = PostgresStorage::new(config).await?;
+    ///     
+    ///     // Manually run migrations if auto_migrate is disabled
+    ///     // storage.migrate().await?;
+    ///     
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn migrate(&self) -> Result<(), StorageError> {
-        let migration_path = self.config.migrations_path;
+        // Use the configured migration path or default to "./migrations"
+        let migration_path = if self.config.migrations_path.is_empty() {
+            "./migrations"
+        } else {
+            &self.config.migrations_path
+        };
 
-        // Run migrations using sqlx migrate
-        sqlx::migrate!(migration_path)
+        // Create migrator from the specified path
+        let migrator = sqlx::migrate::Migrator::new(std::path::Path::new(migration_path))
+            .await
+            .map_err(|e| StorageError::MigrationError {
+                message: format!("Failed to create migrator from path '{}': {}", migration_path, e),
+            })?;
+
+        // Run migrations
+        migrator
             .run(&self.pool)
             .await
             .map_err(|e| StorageError::MigrationError {
