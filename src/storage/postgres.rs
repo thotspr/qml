@@ -49,8 +49,10 @@ impl PostgresStorage {
 
     /// Run database migrations
     pub async fn migrate(&self) -> Result<(), StorageError> {
+        let migration_path = self.config.migrations_path;
+
         // Run migrations using sqlx migrate
-        sqlx::migrate!("./migrations")
+        sqlx::migrate!(migration_path)
             .run(&self.pool)
             .await
             .map_err(|e| StorageError::MigrationError {
