@@ -185,6 +185,10 @@ async fn test_config_serialization_roundtrip() {
             assert_eq!(orig.max_jobs, deser.max_jobs);
             assert_eq!(orig.auto_cleanup, deser.auto_cleanup);
         }
+        #[cfg(feature = "postgres")]
+        (StorageConfig::Postgres(_), _) | (_, StorageConfig::Postgres(_)) => {
+            panic!("Unexpected postgres config in memory config test");
+        }
     }
 
     // Test Redis config

@@ -43,12 +43,6 @@ impl DatabaseInitializer {
         self
     }
 
-    /// Set custom migration path
-    pub fn with_migrations_path<S: Into<String>>(mut self, path: S) -> Self {
-        self.config = self.config.with_migrations_path(path);
-        self
-    }
-
     /// Configure connection pool settings
     pub fn with_pool_config(mut self, max_connections: u32, min_connections: u32) -> Self {
         self.config = self.config
@@ -217,13 +211,11 @@ mod tests {
         let initializer = DatabaseInitializer::new()
             .with_database_url("postgresql://test")
             .with_auto_migrate(false)
-            .with_migrations_path("./test_migrations")
             .with_pool_config(5, 1)
             .with_retry_config(2, Duration::from_millis(100));
 
         assert_eq!(initializer.config.database_url, "postgresql://test");
         assert!(!initializer.config.auto_migrate);
-        assert_eq!(initializer.config.migrations_path, "./test_migrations");
         assert_eq!(initializer.config.max_connections, 5);
         assert_eq!(initializer.retry_attempts, 2);
     }

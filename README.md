@@ -254,8 +254,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 // Auto-migrate everything on startup
 let config = PostgresConfig::new()
     .with_database_url(database_url)
-    .with_auto_migrate(true)        // Enabled by default
-    .with_migrations_path("./migrations");
+    .with_auto_migrate(true);        // Enabled by default
 
 let storage = PostgresStorage::new(config).await?; // Migrations run automatically
 ```
@@ -266,8 +265,7 @@ let storage = PostgresStorage::new(config).await?; // Migrations run automatical
 // Manual migration control for production safety
 let config = PostgresConfig::new()
     .with_database_url(database_url)
-    .with_auto_migrate(false)       // Disable auto-migration
-    .with_migrations_path("./migrations");
+    .with_auto_migrate(false);       // Disable auto-migration
 
 let storage = PostgresStorage::new(config).await?;
 
@@ -447,20 +445,6 @@ let should_migrate = !storage.schema_exists().await? ||
 if should_migrate {
     storage.migrate().await?;
 }
-```
-
-#### **Custom Migration Paths**
-
-```rust
-// Different migration paths for different environments
-let migration_path = match std::env::var("ENVIRONMENT").as_deref() {
-    Ok("production") => "./migrations/production",
-    Ok("staging") => "./migrations/staging",
-    _ => "./migrations/development",
-};
-
-let config = PostgresConfig::new()
-    .with_migrations_path(migration_path);
 ```
 
 ### **Migration Monitoring & Logging**
@@ -800,55 +784,6 @@ let redis_config = RedisConfig::new()
     .with_completed_job_ttl(Duration::from_secs(86400)); // 24h
 ```
 
-### **Custom Migration Paths**
-
-By default, QML looks for database migration files in `./migrations`. You can customize this:
-
-#### **Direct Configuration**
-
-```rust
-let config = PostgresConfig::with_defaults()
-    .with_database_url("postgresql://qml_user:secure_password@localhost:5432/qml")
-    .with_migrations_path("./custom_migrations")  // Custom path
-    .with_auto_migrate(true);
-```
-
-#### **Environment Variables**
-
-```bash
-export QML_MIGRATIONS_PATH="./custom_migrations"
-export DATABASE_URL="postgresql://qml_user:secure_password@localhost:5432/qml"
-```
-
-```rust
-let settings = Settings::from_env()?;
-let config = PostgresConfig::with_defaults()
-    .with_database_url(settings.database_url.unwrap())
-    .with_migrations_path(&settings.migrations_path)
-    .with_auto_migrate(settings.auto_migrate);
-```
-
-#### **Manual Migration Control**
-
-```rust
-let config = PostgresConfig::with_defaults()
-    .with_migrations_path("./custom_migrations")
-    .with_auto_migrate(false);  // Disable auto-migration
-
-let storage = PostgresStorage::new(config).await?;
-storage.migrate().await?;  // Run manually when needed
-```
-
-| Environment Variable  | Default        | Description                             |
-| --------------------- | -------------- | --------------------------------------- |
-| `QML_MIGRATIONS_PATH` | `./migrations` | Path to migration files directory       |
-| `QML_AUTO_MIGRATE`    | `true`         | Whether to run migrations automatically |
-
-> **Example**: See `examples/custom_migrations.rs` for a complete demo.
-> Run with: `cargo run --example custom_migrations --features postgres`
-
-````
-
 ## 🚀 **What's Next?**
 
 qml is production-ready! The next phase focuses on:
@@ -886,7 +821,7 @@ cargo test
 # Start development with watch mode
 cargo install cargo-watch
 cargo watch -x test
-````
+```
 
 For questions or help getting started, please open an issue with the "question" label.
 
@@ -902,16 +837,6 @@ This README now contains all comprehensive documentation previously spread acros
 - **✅ Configuration Options**: Environment variables and programmatic config
 - **✅ Error Handling**: Comprehensive error recovery patterns
 - **✅ Health Checks**: Post-deployment validation and monitoring
-
-### **Migration Documentation Consolidation**
-
-This README replaces and consolidates:
-
-- `MIGRATION_BEST_PRACTICES.md` - All content integrated into "Automated Database Migration" section
-- `IMPLEMENTATION_SUMMARY.md` - Status information included in "Migration Implementation Status"
-- `CONSOLIDATION_SUMMARY.md` - Example information included in updated examples section
-
-All migration functionality, best practices, and implementation details are now available in this single comprehensive guide.
 
 ## 👥 **Contributing**
 
