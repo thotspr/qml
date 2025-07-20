@@ -105,7 +105,8 @@ pub struct RedisConfig {
 impl Default for RedisConfig {
     fn default() -> Self {
         Self {
-            url: std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string()),
+            url: std::env::var("REDIS_URL")
+                .unwrap_or_else(|_| "redis://localhost:6379".to_string()),
             pool_size: 10,
             connection_timeout: Duration::from_secs(5),
             command_timeout: Duration::from_secs(5),
@@ -242,8 +243,6 @@ impl RedisConfig {
 pub struct PostgresConfig {
     /// PostgreSQL connection URL (postgresql://user:password@localhost/qml)
     pub database_url: String,
-    /// Migrations path
-    pub migrations_path: String,
     /// Maximum number of connections in the pool
     pub max_connections: u32,
     /// Minimum number of connections in the pool
@@ -270,9 +269,9 @@ pub struct PostgresConfig {
 impl Default for PostgresConfig {
     fn default() -> Self {
         Self {
-            database_url: std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgresql://postgres:password@localhost:5432/qml".to_string()),
-            migrations_path: "./migrations".to_string(),
+            database_url: std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+                "postgresql://postgres:password@localhost:5432/qml".to_string()
+            }),
             max_connections: 20,
             min_connections: 1,
             connect_timeout: Duration::from_secs(30),
@@ -298,7 +297,6 @@ impl PostgresConfig {
     pub fn with_defaults() -> Self {
         Self {
             database_url: String::new(), // Empty, must be set with with_database_url()
-            migrations_path: "./migrations".to_string(),
             max_connections: 20,
             min_connections: 1,
             connect_timeout: Duration::from_secs(30),
@@ -315,12 +313,6 @@ impl PostgresConfig {
     /// Set the database URL
     pub fn with_database_url<S: Into<String>>(mut self, url: S) -> Self {
         self.database_url = url.into();
-        self
-    }
-
-    /// Set the migrations path
-    pub fn with_migrations_path<S: Into<String>>(mut self, path: S) -> Self {
-        self.migrations_path = path.into();
         self
     }
 
