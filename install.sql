@@ -15,30 +15,45 @@ CREATE TABLE IF NOT EXISTS qml.qml_jobs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     method_name VARCHAR(255) NOT NULL,
     arguments JSONB NOT NULL DEFAULT '[]'::jsonb,
-    
     -- Job state management
     state_name VARCHAR(50) NOT NULL DEFAULT 'pending',
     state_data JSONB NOT NULL DEFAULT '{}'::jsonb,
-    
     -- Queue and priority management
     queue_name VARCHAR(255) NOT NULL DEFAULT 'default',
     priority INTEGER NOT NULL DEFAULT 0,
     max_retries INTEGER NOT NULL DEFAULT 3,
-    
+    current_retries INTEGER NOT NULL DEFAULT 0,
+
     -- Additional data and metadata
     metadata JSONB DEFAULT NULL,
-    
+    job_type VARCHAR(255) DEFAULT NULL,
+    timeout_seconds INTEGER DEFAULT NULL,
+
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     scheduled_for TIMESTAMPTZ DEFAULT NULL,
     expires_at TIMESTAMPTZ DEFAULT NULL,
-    
+
     -- Distributed job locking (for multi-worker environments)
     locked_by VARCHAR(255) DEFAULT NULL,
     locked_at TIMESTAMPTZ DEFAULT NULL,
     lock_expires_at TIMESTAMPTZ DEFAULT NULL
 );
+
+-- Migration: Add job_type, timeout_seconds, and current_retries columns
+-- This migration adds the missing job_type, timeout_seconds, and current_retries columns
+-- to the qml_jobs table and creates appropriate indexes.
+
+-- Add the missing columns
+ALTER TABLE qml.qml_jobs
+ADD COLUMN IF NOT EXISTS job_type VARCHAR(255) DEFAULT NULL;
+
+ALTER TABLE qml.qml_jobs
+ADD COLUMN IF NOT EXISTS timeout_seconds INTEGER DEFAULT NULL;
+
+ALTER TABLE qml.qml_jobs
+ADD COLUMN IF NOT EXISTS current_retries INTEGER NOT NULL DEFAULT 0;
 
 -- =========================================================================
 -- PERFORMANCE INDEXES
@@ -62,6 +77,12 @@ CREATE INDEX IF NOT EXISTS idx_qml_jobs_expires_at ON qml.qml_jobs(expires_at) W
 -- Distributed locking indexes
 CREATE INDEX IF NOT EXISTS idx_qml_jobs_locked_by ON qml.qml_jobs(locked_by) WHERE locked_by IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_qml_jobs_lock_expires ON qml.qml_jobs(lock_expires_at) WHERE lock_expires_at IS NOT NULL;
+
+-- Job type and timeout indexes
+CREATE INDEX IF NOT EXISTS idx_qml_jobs_job_type ON qml.qml_jobs(job_type) WHERE job_type IS NOT NULL;
+
+-- Add indexes for the new columns
+CREATE INDEX IF NOT EXISTS idx_qml_jobs_job_type ON qml.qml_jobs(job_type) WHERE job_type IS NOT NULL;
 
 -- =========================================================================
 -- TRIGGERS AND FUNCTIONS
@@ -116,18 +137,18 @@ DECLARE
     rows_affected INTEGER;
 BEGIN
     -- Try to acquire lock on the job (atomic operation)
-    UPDATE qml.qml_jobs 
-    SET 
+    UPDATE qml.qml_jobs
+    SET
         locked_by = p_worker_id,
         locked_at = NOW(),
         lock_expires_at = NOW() + p_lock_duration
-    WHERE 
-        id = p_job_id 
+    WHERE
+        id = p_job_id
         AND (
-            locked_by IS NULL 
+            locked_by IS NULL
             OR lock_expires_at < NOW()  -- Lock has expired
         );
-    
+
     GET DIAGNOSTICS rows_affected = ROW_COUNT;
     RETURN rows_affected > 0;
 END;
@@ -142,15 +163,15 @@ DECLARE
     rows_affected INTEGER;
 BEGIN
     -- Only release if the worker actually owns the lock
-    UPDATE qml.qml_jobs 
-    SET 
+    UPDATE qml.qml_jobs
+    SET
         locked_by = NULL,
         locked_at = NULL,
         lock_expires_at = NULL
-    WHERE 
-        id = p_job_id 
+    WHERE
+        id = p_job_id
         AND locked_by = p_worker_id;
-    
+
     GET DIAGNOSTICS rows_affected = ROW_COUNT;
     RETURN rows_affected > 0;
 END;
@@ -161,14 +182,14 @@ CREATE OR REPLACE FUNCTION qml.cleanup_expired_locks() RETURNS INTEGER AS $$
 DECLARE
     rows_affected INTEGER;
 BEGIN
-    UPDATE qml.qml_jobs 
-    SET 
+    UPDATE qml.qml_jobs
+    SET
         locked_by = NULL,
         locked_at = NULL,
         lock_expires_at = NULL
-    WHERE 
+    WHERE
         lock_expires_at < NOW();
-    
+
     GET DIAGNOSTICS rows_affected = ROW_COUNT;
     RETURN rows_affected;
 END;
@@ -186,7 +207,7 @@ BEGIN
     -- Find and lock the next available job atomically
     SELECT id INTO selected_job_id
     FROM qml.qml_jobs
-    WHERE 
+    WHERE
         state_name = 'pending'
         AND queue_name = ANY(p_queue_names)
         AND (scheduled_for IS NULL OR scheduled_for <= NOW())
@@ -194,7 +215,7 @@ BEGIN
     ORDER BY priority DESC, created_at ASC
     LIMIT 1
     FOR UPDATE SKIP LOCKED;
-    
+
     -- If we found a job, try to acquire the lock
     IF selected_job_id IS NOT NULL THEN
         IF qml.acquire_job_lock(selected_job_id, p_worker_id, p_lock_duration) THEN
@@ -224,7 +245,10 @@ COMMENT ON COLUMN qml.qml_jobs.state_data IS 'Additional state-specific data (JS
 COMMENT ON COLUMN qml.qml_jobs.queue_name IS 'Queue name for job organization and routing';
 COMMENT ON COLUMN qml.qml_jobs.priority IS 'Job priority (higher number = higher priority)';
 COMMENT ON COLUMN qml.qml_jobs.max_retries IS 'Maximum number of retry attempts allowed';
+COMMENT ON COLUMN qml.qml_jobs.current_retries IS 'Current number of retry attempts for this job';
 COMMENT ON COLUMN qml.qml_jobs.metadata IS 'Additional job metadata and context (JSON)';
+COMMENT ON COLUMN qml.qml_jobs.job_type IS 'Optional job category/type for organization and filtering';
+COMMENT ON COLUMN qml.qml_jobs.timeout_seconds IS 'Job execution timeout in seconds (optional)';
 COMMENT ON COLUMN qml.qml_jobs.created_at IS 'Timestamp when the job was created';
 COMMENT ON COLUMN qml.qml_jobs.updated_at IS 'Timestamp when the job was last updated (auto-updated)';
 COMMENT ON COLUMN qml.qml_jobs.scheduled_for IS 'When the job should be processed (for delayed jobs)';
