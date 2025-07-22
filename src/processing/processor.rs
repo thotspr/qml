@@ -52,6 +52,11 @@ impl JobProcessor {
         }
     }
 
+    /// Get the worker ID for this processor
+    pub fn get_worker_id(&self) -> &str {
+        &self.worker_config.worker_id
+    }
+
     /// Process a single job
     pub async fn process_job(&self, mut job: Job) -> Result<()> {
         let job_id = job.id.clone();
@@ -75,23 +80,25 @@ impl JobProcessor {
             }
         };
 
-        // Update job state to Processing
-        let processing_state = JobState::processing(
-            &self.worker_config.worker_id,
-            &self.worker_config.server_name,
-        );
+        // Update job state to Processing (if not already)
+        if !matches!(job.state, JobState::Processing { .. }) {
+            let processing_state = JobState::processing(
+                &self.worker_config.worker_id,
+                &self.worker_config.server_name,
+            );
 
-        if let Err(e) = job.set_state(processing_state) {
-            error!("Failed to set job state to Processing: {}", e);
-            return Err(e);
-        }
+            if let Err(e) = job.set_state(processing_state) {
+                error!("Failed to set job state to Processing: {}", e);
+                return Err(e);
+            }
 
-        // Save the updated state
-        if let Err(e) = self.storage.update(&job).await {
-            error!("Failed to update job state in storage: {}", e);
-            return Err(QmlError::StorageError {
-                message: e.to_string(),
-            });
+            // Save the updated state
+            if let Err(e) = self.storage.update(&job).await {
+                error!("Failed to update job state in storage: {}", e);
+                return Err(QmlError::StorageError {
+                    message: e.to_string(),
+                });
+            }
         }
 
         // Get retry count from job state
@@ -167,6 +174,15 @@ impl JobProcessor {
         duration_ms: u64,
         metadata: std::collections::HashMap<String, String>,
     ) -> Result<()> {
+        // Check if job is already in a final state
+        if job.state.is_final() {
+            debug!(
+                "Job {} is already in a final state, skipping success",
+                job.id
+            );
+            return Ok(());
+        }
+
         let succeeded_state = JobState::succeeded(duration_ms, result);
 
         if let Err(e) = job.set_state(succeeded_state) {
@@ -198,6 +214,12 @@ impl JobProcessor {
         retry_at: Option<chrono::DateTime<Utc>>,
         current_retry_count: u32,
     ) -> Result<()> {
+        // Check if job is already in a final state
+        if job.state.is_final() {
+            debug!("Job {} is already in a final state, skipping retry", job.id);
+            return Ok(());
+        }
+
         let next_attempt = current_retry_count + 1;
 
         // Check if we should retry based on policy
@@ -254,6 +276,15 @@ impl JobProcessor {
         stack_trace: Option<String>,
         retry_count: u32,
     ) -> Result<()> {
+        // Check if job is already in a final state
+        if job.state.is_final() {
+            debug!(
+                "Job {} is already in a final state, skipping failure",
+                job.id
+            );
+            return Ok(());
+        }
+
         let failed_state = JobState::failed(error, stack_trace, retry_count);
 
         if let Err(e) = job.set_state(failed_state) {

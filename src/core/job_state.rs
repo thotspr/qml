@@ -124,6 +124,7 @@ impl JobState {
             (Enqueued { .. }, Processing { .. }) => true,
             (Enqueued { .. }, Deleted { .. }) => true,
             (Enqueued { .. }, Scheduled { .. }) => true,
+            (Enqueued { .. }, Failed { .. }) => true, // Allow direct failure for configuration errors
 
             // From Processing
             (Processing { .. }, Succeeded { .. }) => true,

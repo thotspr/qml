@@ -57,7 +57,7 @@ fn test_valid_state_transitions() {
     assert!(enqueued.can_transition_to(&deleted));
     assert!(enqueued.can_transition_to(&scheduled));
     assert!(!enqueued.can_transition_to(&succeeded));
-    assert!(!enqueued.can_transition_to(&failed));
+    assert!(enqueued.can_transition_to(&failed)); // Now allowed for jobs without workers
 
     // From Processing
     assert!(processing.can_transition_to(&succeeded));
