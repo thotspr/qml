@@ -285,32 +285,27 @@ impl BackgroundJobServer {
         while *is_running.read().await {
             interval.tick().await;
 
-            // Fetch available jobs
+            // Fetch and lock an available job for this worker
+            let queue_filter = if config.queues.is_empty() {
+                None
+            } else {
+                Some(config.queues.as_slice())
+            };
+
             match storage
-                .get_available_jobs(Some(config.fetch_batch_size))
+                .fetch_and_lock_job(&processor.get_worker_id(), queue_filter)
                 .await
             {
-                Ok(jobs) => {
-                    if !jobs.is_empty() {
-                        debug!("Fetched {} jobs for processing", jobs.len());
+                Ok(Some(job)) => {
+                    debug!("Fetched job {} for processing", job.id);
+
+                    // Process the job
+                    if let Err(e) = processor.process_job(job).await {
+                        error!("Error processing job: {}", e);
                     }
-
-                    for job in jobs {
-                        // Check if we should process this job based on queue filter
-                        if !config.queues.is_empty() && !config.queues.contains(&job.queue) {
-                            continue;
-                        }
-
-                        // Process the job
-                        if let Err(e) = processor.process_job(job).await {
-                            error!("Error processing job: {}", e);
-                        }
-
-                        // Check if we should stop
-                        if !*is_running.read().await {
-                            break;
-                        }
-                    }
+                }
+                Ok(None) => {
+                    // No jobs available, continue polling
                 }
                 Err(e) => {
                     error!("Error fetching jobs: {}", e);
