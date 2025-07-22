@@ -61,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_qml_jobs_state_priority ON qml.qml_jobs(state_nam
 CREATE INDEX IF NOT EXISTS idx_qml_jobs_queue_priority ON qml.qml_jobs(queue_name, priority DESC);
 
 -- Scheduling and cleanup indexes
-CREATE INDEX IF NOT EXISTS idx_qml_jobs_scheduled_for ON qml.qml_jobs(scheduled_for) WHERE scheduled_for IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_qml_jobs_scheduled_at ON qml.qml_jobs(scheduled_at) WHERE scheduled_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_qml_jobs_expires_at ON qml.qml_jobs(expires_at) WHERE expires_at IS NOT NULL;
 
 -- Distributed locking indexes
@@ -200,7 +200,7 @@ BEGIN
     WHERE
         state_name = 'pending'
         AND queue_name = ANY(p_queue_names)
-        AND (scheduled_for IS NULL OR scheduled_for <= NOW())
+        AND (scheduled_at IS NULL OR scheduled_at <= NOW())
         AND (locked_by IS NULL OR lock_expires_at < NOW())
     ORDER BY priority DESC, created_at ASC
     LIMIT 1
@@ -241,7 +241,7 @@ COMMENT ON COLUMN qml.qml_jobs.job_type IS 'Optional job category/type for organ
 COMMENT ON COLUMN qml.qml_jobs.timeout_seconds IS 'Job execution timeout in seconds (optional)';
 COMMENT ON COLUMN qml.qml_jobs.created_at IS 'Timestamp when the job was created';
 COMMENT ON COLUMN qml.qml_jobs.updated_at IS 'Timestamp when the job was last updated (auto-updated)';
-COMMENT ON COLUMN qml.qml_jobs.scheduled_for IS 'When the job should be processed (for delayed jobs)';
+COMMENT ON COLUMN qml.qml_jobs.scheduled_at IS 'When the job should be processed (for delayed jobs)';
 COMMENT ON COLUMN qml.qml_jobs.expires_at IS 'When the job expires and should be cleaned up';
 COMMENT ON COLUMN qml.qml_jobs.locked_by IS 'Worker ID that currently has this job locked';
 COMMENT ON COLUMN qml.qml_jobs.locked_at IS 'Timestamp when the job lock was acquired';
