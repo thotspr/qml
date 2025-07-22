@@ -759,8 +759,8 @@ impl Storage for PostgresStorage {
         // Use SELECT FOR UPDATE SKIP LOCKED for atomic job fetching
         let mut query = format!(
             r#"
-            SELECT id, method_name, arguments, state_name, state_data, metadata,
-                   created_at, updated_at, priority, queue_name, scheduled_at
+            SELECT id, method_name, arguments, created_at, state_name, state_data,
+                   queue_name, priority, max_retries, metadata, job_type, timeout_seconds
             FROM {}
             WHERE state_name IN ('enqueued', 'retrying')
         "#,
@@ -809,7 +809,16 @@ impl Storage for PostgresStorage {
             };
 
             // Update the job in the same transaction
-            let (state_name, state_data, metadata) = Self::job_to_row_values(&job)?;
+            let (state_name, state_data, _arguments) = Self::job_to_row_values(&job)?;
+            let metadata = if job.metadata.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_value(&job.metadata).map_err(|e| {
+                    StorageError::SerializationError {
+                        message: format!("Failed to serialize metadata: {}", e),
+                    }
+                })?)
+            };
 
             let update_query = format!(
                 r#"
