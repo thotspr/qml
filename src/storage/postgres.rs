@@ -829,8 +829,12 @@ impl Storage for PostgresStorage {
                 self.table_name()
             );
 
+            let job_uuid = Uuid::from_str(&job.id).map_err(|e| StorageError::InvalidJobData {
+                message: format!("Invalid job ID format: {}", e),
+            })?;
+
             sqlx::query(&update_query)
-                .bind(&job.id)
+                .bind(job_uuid)
                 .bind(state_name)
                 .bind(state_data)
                 .bind(metadata)
@@ -866,47 +870,44 @@ impl Storage for PostgresStorage {
         worker_id: &str,
         timeout_seconds: u64,
     ) -> Result<bool, StorageError> {
-        let expires_at = chrono::Utc::now() + chrono::Duration::seconds(timeout_seconds as i64);
+        let job_uuid = Uuid::from_str(job_id).map_err(|e| StorageError::InvalidJobData {
+            message: format!("Invalid job ID format: {}", e),
+        })?;
 
-        // Create a lock table entry using INSERT ... ON CONFLICT DO NOTHING for atomic locking
-        let insert_query = r#"
-            INSERT INTO qml_job_locks (job_id, worker_id, expires_at, created_at)
-            VALUES ($1, $2, $3, $4)
-            ON CONFLICT (job_id) DO NOTHING
-            RETURNING job_id
-        "#;
+        // Use the built-in PostgreSQL function for atomic job locking
+        let query = "SELECT qml.acquire_job_lock($1, $2, INTERVAL '1 second' * $3)";
 
-        let result = sqlx::query(insert_query)
-            .bind(job_id)
+        let result = sqlx::query_scalar::<_, bool>(query)
+            .bind(job_uuid)
             .bind(worker_id)
-            .bind(expires_at)
-            .bind(chrono::Utc::now())
-            .fetch_optional(&self.pool)
+            .bind(timeout_seconds as i32)
+            .fetch_one(&self.pool)
             .await
             .map_err(|e| StorageError::OperationError {
                 message: format!("Failed to acquire job lock: {}", e),
             })?;
 
-        Ok(result.is_some())
+        Ok(result)
     }
 
     async fn release_job_lock(&self, job_id: &str, worker_id: &str) -> Result<bool, StorageError> {
-        let delete_query = r#"
-            DELETE FROM qml_job_locks
-            WHERE job_id = $1 AND worker_id = $2
-            RETURNING job_id
-        "#;
+        let job_uuid = Uuid::from_str(job_id).map_err(|e| StorageError::InvalidJobData {
+            message: format!("Invalid job ID format: {}", e),
+        })?;
 
-        let result = sqlx::query(delete_query)
-            .bind(job_id)
+        // Use the built-in PostgreSQL function for releasing job locks
+        let query = "SELECT qml.release_job_lock($1, $2)";
+
+        let result = sqlx::query_scalar::<_, bool>(query)
+            .bind(job_uuid)
             .bind(worker_id)
-            .fetch_optional(&self.pool)
+            .fetch_one(&self.pool)
             .await
             .map_err(|e| StorageError::OperationError {
                 message: format!("Failed to release job lock: {}", e),
             })?;
 
-        Ok(result.is_some())
+        Ok(result)
     }
 
     async fn fetch_available_jobs_atomic(
