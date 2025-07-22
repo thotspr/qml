@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS qml.qml_jobs (
     -- Timestamps
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    scheduled_for TIMESTAMPTZ DEFAULT NULL,
+    scheduled_at TIMESTAMPTZ DEFAULT NULL,
     expires_at TIMESTAMPTZ DEFAULT NULL,
 
     -- Distributed job locking (for multi-worker environments)
@@ -44,16 +44,6 @@ CREATE TABLE IF NOT EXISTS qml.qml_jobs (
 -- Migration: Add job_type, timeout_seconds, and current_retries columns
 -- This migration adds the missing job_type, timeout_seconds, and current_retries columns
 -- to the qml_jobs table and creates appropriate indexes.
-
--- Add the missing columns
-ALTER TABLE qml.qml_jobs
-ADD COLUMN IF NOT EXISTS job_type VARCHAR(255) DEFAULT NULL;
-
-ALTER TABLE qml.qml_jobs
-ADD COLUMN IF NOT EXISTS timeout_seconds INTEGER DEFAULT NULL;
-
-ALTER TABLE qml.qml_jobs
-ADD COLUMN IF NOT EXISTS current_retries INTEGER NOT NULL DEFAULT 0;
 
 -- =========================================================================
 -- PERFORMANCE INDEXES
