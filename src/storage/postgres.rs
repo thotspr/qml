@@ -187,12 +187,12 @@ impl PostgresStorage {
     ///     let config = PostgresConfig::new()
     ///         .with_database_url("postgresql://user:pass@localhost/db")
     ///         .with_auto_migrate(false);  // Manual control for production
-    ///     
+    ///
     ///     let storage = PostgresStorage::new(config).await?;
-    ///     
+    ///
     ///     // Install complete schema manually
     ///     storage.migrate().await?;
-    ///     
+    ///
     ///     println!("QML PostgreSQL schema installed successfully!");
     ///     Ok(())
     /// }
@@ -388,13 +388,13 @@ impl PostgresStorage {
     /// Convert JobState to state name string
     fn job_state_to_name(state: &JobState) -> String {
         match state {
-            JobState::Enqueued { .. } => "Enqueued".to_string(),
-            JobState::Processing { .. } => "Processing".to_string(),
-            JobState::Succeeded { .. } => "Succeeded".to_string(),
-            JobState::Failed { .. } => "Failed".to_string(),
-            JobState::Deleted { .. } => "Deleted".to_string(),
-            JobState::Scheduled { .. } => "Scheduled".to_string(),
-            JobState::AwaitingRetry { .. } => "AwaitingRetry".to_string(),
+            JobState::Enqueued { .. } => "enqueued".to_string(),
+            JobState::Processing { .. } => "processing".to_string(),
+            JobState::Succeeded { .. } => "succeeded".to_string(),
+            JobState::Failed { .. } => "failed".to_string(),
+            JobState::Deleted { .. } => "deleted".to_string(),
+            JobState::Scheduled { .. } => "scheduled".to_string(),
+            JobState::AwaitingRetry { .. } => "awaiting_retry".to_string(),
         }
     }
 
@@ -688,13 +688,13 @@ impl Storage for PostgresStorage {
 
             // Create a dummy state for the count lookup
             let dummy_state = match state_name.as_str() {
-                "Enqueued" => JobState::enqueued("default"),
-                "Processing" => JobState::processing("dummy", "dummy"),
-                "Succeeded" => JobState::succeeded(0, None),
-                "Failed" => JobState::failed("dummy", None, 0),
-                "Deleted" => JobState::deleted(None),
-                "Scheduled" => JobState::scheduled(Utc::now(), "dummy"),
-                "AwaitingRetry" => JobState::awaiting_retry(Utc::now(), 0, "dummy"),
+                "enqueued" => JobState::enqueued("default"),
+                "processing" => JobState::processing("dummy", "dummy"),
+                "succeeded" => JobState::succeeded(0, None),
+                "failed" => JobState::failed("dummy", None, 0),
+                "deleted" => JobState::deleted(None),
+                "scheduled" => JobState::scheduled(Utc::now(), "dummy"),
+                "awaiting_retry" => JobState::awaiting_retry(Utc::now(), 0, "dummy"),
                 _ => continue, // Skip unknown states
             };
 
@@ -710,11 +710,11 @@ impl Storage for PostgresStorage {
             SELECT id, method_name, arguments, created_at, state_name, state_data,
                    queue_name, priority, max_retries, metadata, job_type, timeout_seconds
             FROM {}
-            WHERE state_name IN ('Enqueued', 'Scheduled', 'AwaitingRetry')
+            WHERE state_name IN ('enqueued', 'scheduled', 'awaiting_retry')
             AND (
-                state_name = 'Enqueued' OR
-                (state_name = 'Scheduled' AND (state_data->>'enqueue_at')::timestamp <= NOW()) OR
-                (state_name = 'AwaitingRetry' AND (state_data->>'retry_at')::timestamp <= NOW())
+                state_name = 'enqueued' OR
+                (state_name = 'scheduled' AND (state_data->>'enqueue_at')::timestamp <= NOW()) OR
+                (state_name = 'awaiting_retry' AND (state_data->>'retry_at')::timestamp <= NOW())
             )
             ORDER BY priority DESC, created_at ASC
             "#,
@@ -759,8 +759,8 @@ impl Storage for PostgresStorage {
         // Use SELECT FOR UPDATE SKIP LOCKED for atomic job fetching
         let mut query = format!(
             r#"
-            SELECT id, method_name, arguments, state_name, state_data, metadata, 
-                   created_at, updated_at, priority, queue_name, scheduled_at
+            SELECT id, method_name, arguments, created_at, state_name, state_data,
+                   queue_name, priority, max_retries, metadata, job_type, timeout_seconds
             FROM {}
             WHERE state_name IN ('enqueued', 'retrying')
         "#,
@@ -809,11 +809,20 @@ impl Storage for PostgresStorage {
             };
 
             // Update the job in the same transaction
-            let (state_name, state_data, metadata) = Self::job_to_row_values(&job)?;
+            let (state_name, state_data, _arguments) = Self::job_to_row_values(&job)?;
+            let metadata = if job.metadata.is_empty() {
+                None
+            } else {
+                Some(serde_json::to_value(&job.metadata).map_err(|e| {
+                    StorageError::SerializationError {
+                        message: format!("Failed to serialize metadata: {}", e),
+                    }
+                })?)
+            };
 
             let update_query = format!(
                 r#"
-                UPDATE {} 
+                UPDATE {}
                 SET state_name = $2, state_data = $3, metadata = $4, updated_at = NOW()
                 WHERE id = $1
             "#,
@@ -883,7 +892,7 @@ impl Storage for PostgresStorage {
 
     async fn release_job_lock(&self, job_id: &str, worker_id: &str) -> Result<bool, StorageError> {
         let delete_query = r#"
-            DELETE FROM qml_job_locks 
+            DELETE FROM qml_job_locks
             WHERE job_id = $1 AND worker_id = $2
             RETURNING job_id
         "#;
@@ -993,19 +1002,19 @@ mod tests {
         let enqueued_state = JobState::enqueued("default");
         assert_eq!(
             PostgresStorage::job_state_to_name(&enqueued_state),
-            "Enqueued"
+            "enqueued"
         );
 
         let processing_state = JobState::processing("worker-1", "server-1");
         assert_eq!(
             PostgresStorage::job_state_to_name(&processing_state),
-            "Processing"
+            "processing"
         );
 
         let succeeded_state = JobState::succeeded(0, None);
         assert_eq!(
             PostgresStorage::job_state_to_name(&succeeded_state),
-            "Succeeded"
+            "succeeded"
         );
     }
 
@@ -1017,7 +1026,7 @@ mod tests {
         assert!(state_data.is_ok());
 
         let state_json = state_data.unwrap();
-        let recovered_state = PostgresStorage::data_to_job_state("Enqueued", &state_json);
+        let recovered_state = PostgresStorage::data_to_job_state("enqueued", &state_json);
         assert!(recovered_state.is_ok());
 
         // Verify the recovered state matches the original
