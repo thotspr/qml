@@ -22,10 +22,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-qml = "0.1.0"
+qml-rs = "0.1.0"
 
 # Enable PostgreSQL support
-qml = { version = "0.1.0", features = ["postgres"] }
+qml-rs = { version = "1.0.0", features = ["postgres"] }
 ```
 
 ## 🔧 **Complete Feature Set**
@@ -78,7 +78,7 @@ qml = { version = "0.1.0", features = ["postgres"] }
 ### **Basic Job Processing**
 
 ```rust
-use qml::{
+use qml_rs::{
     BackgroundJobServer, Job, MemoryStorage, ServerConfig,
     Worker, WorkerContext, WorkerResult, WorkerRegistry
 };
@@ -131,7 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### **PostgreSQL Setup**
 
 ```rust
-use qml::{PostgresConfig, PostgresStorage, StorageInstance};
+use qml_rs::{PostgresConfig, PostgresStorage, StorageInstance};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -154,7 +154,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### **Redis Cluster Setup**
 
 ```rust
-use qml::{RedisConfig, RedisStorage, StorageInstance};
+use qml_rs::{RedisConfig, RedisStorage, StorageInstance};
 use std::time::Duration;
 
 #[tokio::main]
@@ -178,7 +178,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### **Multi-Backend Production Example**
 
 ```rust
-use qml::{
+use qml_rs::{
     BackgroundJobServer, DashboardServer, Job, PostgresConfig,
     ServerConfig, StorageInstance, WorkerRegistry
 };
@@ -230,7 +230,7 @@ QML provides comprehensive automated migration support for PostgreSQL with zero-
 ### **Zero-Configuration Setup**
 
 ```rust
-use qml::{PostgresConfig, PostgresStorage};
+use qml_rs::{PostgresConfig, PostgresStorage};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -309,7 +309,7 @@ if migration_needed {
 ### **Error Recovery & Health Checks**
 
 ```rust
-use qml::{PostgresStorage, StorageError, PostgresConfig};
+use qml_rs::{PostgresStorage, StorageError, PostgresConfig};
 
 async fn robust_initialization(database_url: String) -> Result<PostgresStorage, Box<dyn std::error::Error>> {
     let config = PostgresConfig::new()
